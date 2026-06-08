@@ -376,6 +376,10 @@
         print-color-adjust: exact; -webkit-print-color-adjust: exact;
       }
       body.print-with-letterhead .preview-panel, body.print-with-letterhead .preview-shell { background: transparent; }
+      body.print-with-letterhead .preview-shell {
+        padding: var(--lh-content-top) var(--lh-content-right) var(--lh-content-bottom) var(--lh-content-left);
+        box-decoration-break: clone; -webkit-box-decoration-break: clone;
+      }
     }
   </style>
 </head>
@@ -1746,13 +1750,23 @@ ${text}`;
           pageStyle.id = "printPageStyle";
           document.head.appendChild(pageStyle);
         }
-        pageStyle.textContent = `@media print{@page{size:A4;margin:${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm}}`;
+        pageStyle.textContent = withBackground
+          ? `@media print{@page{size:A4;margin:0}}`
+          : `@media print{@page{size:A4;margin:${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm}}`;
         document.body.style.setProperty("--lh-image",withBackground ? `url("${letterheadImageUrl}")` : "none");
+        document.body.style.setProperty("--lh-content-top",withBackground ? `${margins.top}mm` : "0");
+        document.body.style.setProperty("--lh-content-right",withBackground ? `${margins.right}mm` : "0");
+        document.body.style.setProperty("--lh-content-bottom",withBackground ? `${margins.bottom}mm` : "0");
+        document.body.style.setProperty("--lh-content-left",withBackground ? `${margins.left}mm` : "0");
         document.body.classList.toggle("print-with-letterhead",withBackground);
         document.title = data.title || "客户版行程";
         const cleanup = () => {
           document.body.classList.remove("print-with-letterhead");
           document.body.style.removeProperty("--lh-image");
+          document.body.style.removeProperty("--lh-content-top");
+          document.body.style.removeProperty("--lh-content-right");
+          document.body.style.removeProperty("--lh-content-bottom");
+          document.body.style.removeProperty("--lh-content-left");
           window.removeEventListener("afterprint",cleanup);
         };
         window.addEventListener("afterprint",cleanup);
