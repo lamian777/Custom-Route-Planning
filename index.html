@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>旅行线路定制</title>
+  <style>
+    :root {
+      --primary: #ff385c;
+      --primary-active: #e00b41;
+      --ink: #222;
+      --body: #3f3f3f;
+      --muted: #6a6a6a;
+      --line: #ddd;
+      --soft-line: #ebebeb;
+      --soft: #f7f7f7;
+      --canvas: #fff;
+      --danger: #c13515;
+      --shadow: rgba(0,0,0,.02) 0 0 0 1px, rgba(0,0,0,.04) 0 2px 6px, rgba(0,0,0,.10) 0 4px 12px;
+      --radius: 14px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--soft);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      height: 72px; padding: 0 24px;
+      display: flex; align-items: center; gap: 20px;
+      background: rgba(255,255,255,.94); border-bottom: 1px solid var(--soft-line);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 38px; height: 38px; display: grid; place-items: center;
+      color: white; background: var(--primary); border-radius: 12px;
+      font-size: 20px; font-weight: 700;
+    }
+    .brand h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.2px; }
+    .save-state { color: var(--muted); font-size: 12px; margin-top: 1px; }
+    .task-switcher {
+      position: absolute; left: clamp(190px, calc(46vw - 315px), 460px); top: 50%; transform: translateY(-50%);
+      width: 300px; min-width: 190px; max-width: 300px;
+    }
+    .task-trigger { width: 100%; justify-content: space-between; }
+    .task-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .task-menu {
+      position: absolute; top: calc(100% + 8px); left: 0; z-index: 70; width: min(360px, calc(100vw - 24px));
+      padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+    }
+    .task-menu[hidden] { display: none; }
+    .task-list { max-height: 300px; overflow: auto; display: grid; gap: 4px; }
+    .task-item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px; align-items: center; border-radius: 9px; }
+    .task-select {
+      min-width: 0; padding: 9px 10px; border: 0; border-radius: 9px; background: transparent; text-align: left;
+    }
+    .task-select:hover, .task-item.active .task-select { background: var(--soft); }
+    .task-select strong, .task-select small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .task-select small { color: var(--muted); font-size: 11px; font-weight: 400; }
+    .task-delete { padding: 7px 8px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 12px; }
+    .task-delete:hover { color: var(--danger); background: #fff1ee; }
+    .task-menu-actions { margin-top: 9px; padding-top: 9px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid var(--soft-line); }
+    .task-menu-actions .btn { min-height: 36px; padding: 0 9px; font-size: 12px; }
+    .top-actions { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    .export-switcher { position: relative; }
+    .export-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 70; width: 160px;
+      padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+    }
+    .export-menu[hidden] { display: none; }
+    .export-menu .btn { width: 100%; min-height: 38px; justify-content: flex-start; border: 0; background: transparent; }
+    .export-menu .btn:hover { background: var(--soft); }
+    .btn {
+      min-height: 42px; padding: 0 16px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      border: 1px solid var(--line); border-radius: 10px;
+      background: var(--canvas); font-weight: 600;
+      transition: .18s ease;
+    }
+    .btn:hover { border-color: #b0b0b0; background: var(--soft); }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { color: var(--muted); background: var(--soft); border-color: var(--line); cursor: not-allowed; transform: none; }
+    .btn-primary { color: #fff; background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover { color: #fff; background: var(--primary-active); border-color: var(--primary-active); }
+    .btn-small { min-height: 34px; padding: 0 11px; border-radius: 9px; font-size: 13px; }
+    .btn-icon { width: 34px; padding: 0; }
+    .workspace {
+      width: min(1600px, 100%); min-height: calc(100vh - 72px); margin: auto; padding: 20px;
+      display: grid; grid-template-columns: minmax(420px, .92fr) minmax(520px, 1.08fr); gap: 20px;
+    }
+    .panel {
+      min-width: 0; background: var(--canvas); border: 1px solid var(--soft-line);
+      border-radius: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.03); overflow: hidden;
+    }
+    .editor-panel { display: flex; flex-direction: column; }
+    .editor-scroll { padding: 20px; overflow: visible; }
+    .section { margin-bottom: 24px; }
+    .section:last-child { margin-bottom: 0; }
+    .section-title {
+      margin: 0 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-size: 15px; font-weight: 650;
+    }
+    .field { display: block; margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    .field span { display: block; margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    input, textarea, select {
+      width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
+      outline: none; background: #fff; resize: vertical; transition: border-color .15s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+    textarea { min-height: 76px; line-height: 1.55; }
+    .date-picker-wrap { position: relative; }
+    .date-trigger {
+      width: 100%; min-height: 44px; padding: 11px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      border: 1px solid var(--line); border-radius: 9px; background: #fff; text-align: left;
+    }
+    .date-trigger:hover { border-color: #b0b0b0; }
+    .date-trigger .placeholder { color: var(--muted); }
+    .calendar-popover {
+      position: fixed; z-index: 80; width: 310px; padding: 14px;
+      background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+    }
+    .calendar-popover[hidden] { display: none; }
+    .calendar-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .calendar-title { font-size: 15px; font-weight: 700; }
+    .calendar-nav { display: flex; gap: 6px; }
+    .calendar-nav button {
+      width: 36px; height: 36px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: #fff; font-size: 20px;
+    }
+    .calendar-nav button:hover { background: var(--soft); }
+    .calendar-week, .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; text-align: center; }
+    .calendar-week { margin-bottom: 4px; color: var(--muted); font-size: 12px; }
+    .calendar-day {
+      aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: transparent; font-size: 13px;
+    }
+    .calendar-day:hover { background: var(--soft); }
+    .calendar-day.other { color: #aaa; }
+    .calendar-day.current { box-shadow: inset 0 0 0 1px var(--line); }
+    .calendar-day.selected { color: #fff; background: var(--ink); }
+    .calendar-day.selected:hover { background: var(--ink); }
+    .calendar-actions { margin-top: 12px; display: flex; align-items: center; gap: 7px; border-top: 1px solid var(--soft-line); padding-top: 12px; }
+    .calendar-actions .confirm { margin-left: auto; }
+    .calendar-actions button:disabled { opacity: .4; cursor: not-allowed; }
+    .day-card {
+      margin-bottom: 12px; border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--canvas); overflow: hidden; transition: opacity .15s ease, transform .15s ease, border-color .15s ease;
+    }
+    .day-card.dragging { opacity: .55; border-color: var(--primary); transform: scale(.985); }
+    .day-card.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px #ffd1da; }
+    .day-card[open] { box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+    .day-card summary {
+      padding: 13px 14px; display: flex; align-items: center; gap: 10px;
+      list-style: none; cursor: pointer; user-select: none;
+    }
+    .day-card summary::-webkit-details-marker { display: none; }
+    .day-card summary::after { content: "⌄"; flex: none; color: var(--muted); font-size: 17px; }
+    .day-card[open] summary::after { transform: rotate(180deg); }
+    .summary-delete {
+      flex: none; min-width: 42px; height: 32px; margin-left: auto; padding: 0 8px; display: grid; place-items: center;
+      color: var(--muted); border: 0; border-radius: 8px; background: transparent; font-size: 12px; font-weight: 600;
+      opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s ease, background-color .15s ease, color .15s ease;
+    }
+    .summary-delete:hover { color: var(--danger); background: #fff1ee; }
+    .day-card:hover .summary-delete {
+      opacity: 1; visibility: visible; pointer-events: auto;
+    }
+    .day-badge {
+      flex: none; min-width: 38px; height: 30px; padding: 0 8px; display: grid; place-items: center;
+      color: #fff; background: var(--primary); border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .day-summary { min-width: 0; }
+    .day-summary strong, .day-summary small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .day-summary strong { font-size: 14px; font-weight: 650; }
+    .day-summary small { color: var(--muted); }
+    .day-body { padding: 15px; border-top: 1px solid var(--soft-line); background: #fdfdfd; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 12px; margin-bottom: 12px; }
+    .grid-2 .field { margin-bottom: 0; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 0 10px; }
+    .preview-panel { padding: 20px; background: #eee; }
+    .preview-shell {
+      width: 100%; max-width: 900px; min-height: calc(100vh - 152px); margin: auto; padding: 38px 40px;
+      background: #fff; border-radius: 12px; box-shadow: var(--shadow);
+    }
+    .preview-title { margin: 0; text-align: center; font-size: 25px; line-height: 1.35; letter-spacing: -.4px; }
+    .preview-kicker {
+      width: fit-content; margin: 8px auto 28px; padding: 5px 12px; color: var(--primary);
+      background: #fff1f4; border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .preview-highlights {
+      margin: -8px 0 28px; padding: 16px 18px; color: var(--body); background: var(--soft);
+      border-radius: var(--radius);
+    }
+    .preview-highlights h3 { margin: 0 0 7px; color: var(--ink); font-size: 15px; }
+    .preview-highlights ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+    .itinerary { position: relative; }
+    .preview-day {
+      position: relative; margin: 0 0 20px; padding: 0 0 20px 50px; border-bottom: 1px solid var(--soft-line);
+    }
+    .preview-day:last-child { margin-bottom: 0; border-bottom: 0; }
+    .preview-day::before {
+      content: ""; position: absolute; top: 36px; bottom: -21px; left: 17px; width: 1px; background: var(--line);
+    }
+    .preview-day:last-child::before { display: none; }
+    .preview-day-label {
+      position: absolute; top: 0; left: 0; width: 35px; height: 35px; display: grid; place-items: center;
+      color: white; background: var(--primary); border-radius: 50%; font-size: 11px; font-weight: 700;
+    }
+    .preview-day-head { min-height: 35px; display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+    .preview-route { font-size: 16px; font-weight: 700; }
+    .preview-date { flex: none; color: var(--muted); font-size: 12px; }
+    .flight { margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .schedule { margin: 14px 0; display: grid; gap: 8px; }
+    .schedule-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; }
+    .schedule-row b { color: var(--primary); font-size: 12px; }
+    .schedule-row span { white-space: pre-wrap; }
+    .remark-row, .remark-row b { color: #428bff; }
+    .meta-grid { display: grid; gap: 7px; }
+    .meta { color: var(--body); font-size: 12px; }
+    .meta b { color: var(--ink); }
+    .meal-row { display: grid; grid-template-columns: 48px repeat(3,minmax(0,1fr)); align-items: start; gap: 8px; }
+    .meal-item { min-width: 0; display: grid; grid-template-columns: 18px 1fr; gap: 4px; }
+    .meal-item b { font-weight: 600; }
+    .lodging-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; }
+    .info-section { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .info-section h3 { margin: 0 0 12px; font-size: 17px; }
+    .info-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--body); }
+    .info-list li { position: relative; padding-left: 17px; }
+    .info-list li::before { content: ""; position: absolute; left: 0; top: .65em; width: 5px; height: 5px; background: var(--primary); border-radius: 50%; }
+    .empty {
+      padding: 30px 18px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius);
+    }
+    .mobile-tabs { display: none; }
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; z-index: 50; transform: translate(-50%, 20px);
+      padding: 10px 16px; color: white; background: var(--ink); border-radius: 999px;
+      opacity: 0; pointer-events: none; transition: .2s ease; font-size: 13px;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 100; padding: 20px; display: grid; place-items: center;
+      background: rgba(0,0,0,.38); backdrop-filter: blur(7px);
+    }
+    .modal-backdrop[hidden] { display: none; }
+    .import-modal {
+      width: min(680px,100%); max-height: min(760px,calc(100vh - 40px)); display: flex; flex-direction: column;
+      background: #fff; border: 1px solid var(--soft-line); border-radius: 20px; box-shadow: 0 18px 60px rgba(0,0,0,.22); overflow: hidden;
+    }
+    .modal-head, .modal-actions { padding: 16px 18px; display: flex; align-items: center; gap: 10px; }
+    .modal-head { border-bottom: 1px solid var(--soft-line); }
+    .modal-head h2 { margin: 0; font-size: 18px; }
+    .modal-close { margin-left: auto; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 9px; background: transparent; font-size: 20px; }
+    .modal-close:hover { background: var(--soft); }
+    .modal-body { padding: 18px; overflow: auto; }
+    .modal-actions { justify-content: flex-end; border-top: 1px solid var(--soft-line); }
+    .import-note { margin: 0 0 16px; padding: 11px 12px; color: var(--muted); background: var(--soft); border-radius: 10px; font-size: 12px; }
+    .import-note strong { color: var(--ink); }
+    .import-status { min-height: 78px; padding: 18px; display: grid; place-items: center; text-align: center; color: var(--muted); background: var(--soft); border-radius: 12px; }
+    .import-status.busy::before {
+      content: ""; width: 24px; height: 24px; margin-bottom: 8px; border: 3px solid var(--line); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .import-review { display: grid; gap: 14px; }
+    .review-summary { padding: 14px; background: var(--soft); border-radius: 12px; }
+    .review-summary strong, .review-summary span { display: block; }
+    .review-summary span { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .review-section h3 { margin: 0 0 7px; font-size: 14px; }
+    .review-list { margin: 0; padding-left: 18px; color: var(--body); }
+    .review-days { display: grid; gap: 6px; }
+    .review-day { padding: 9px 11px; border: 1px solid var(--soft-line); border-radius: 9px; }
+    .review-day strong { margin-right: 8px; color: var(--primary); }
+    .review-warning { color: #9a5b00; }
+    .api-card { display: grid; gap: 12px; }
+    .api-status {
+      padding: 12px; display: grid; gap: 5px; color: var(--muted); background: var(--soft); border-radius: 12px;
+    }
+    .api-status strong { color: var(--ink); font-size: 15px; }
+    .balance-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+    .balance-item { padding: 10px; background: #fff; border: 1px solid var(--soft-line); border-radius: 10px; }
+    .balance-item span { display: block; color: var(--muted); font-size: 11px; }
+    .balance-item strong { display: block; margin-top: 2px; font-size: 14px; }
+    .parser-hint { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+    @media (max-width: 980px) {
+      .topbar { padding: 0 16px; grid-template-columns: auto minmax(150px,220px) auto; }
+      .task-switcher { position: relative; left: auto; top: auto; transform: none; width: auto; min-width: 150px; max-width: 220px; }
+      .top-actions .reset-label { display: none; }
+      .workspace { display: block; padding: 12px; }
+      .mobile-tabs {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; padding: 4px;
+        position: sticky; top: 80px; z-index: 15; background: #e9e9e9; border-radius: 12px;
+      }
+      .mobile-tab { min-height: 38px; border: 0; border-radius: 9px; background: transparent; font-weight: 650; }
+      .mobile-tab.active { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.09); }
+      .panel { border-radius: 16px; }
+      .editor-panel { height: auto; }
+      .editor-scroll { overflow: visible; padding: 16px; }
+      .preview-panel { display: none; padding: 0; background: transparent; border: 0; box-shadow: none; }
+      body.preview-mode .editor-panel { display: none; }
+      body.preview-mode .preview-panel { display: block; }
+      .preview-shell { min-height: 0; padding: 28px 22px; border-radius: 16px; }
+    }
+    @media (hover: none) {
+      .summary-delete { opacity: 1; visibility: visible; pointer-events: auto; }
+    }
+    @media (max-width: 620px) {
+      .topbar { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 10px; }
+      .brand h1 { font-size: 15px; }
+      .brand .save-state { display: none; }
+      .task-switcher { min-width: 0; max-width: none; flex: 1; }
+      .task-trigger { min-height: 38px; padding: 0 10px; }
+      .top-actions .reset-btn { display: none; }
+      .top-actions #undoBtn { display: none; }
+      .top-actions .btn { min-height: 38px; padding: 0 12px; }
+      .mobile-tabs { top: 72px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .calendar-popover { width: min(310px, calc(100vw - 24px)); }
+      .preview-shell { padding: 24px 17px; }
+      .preview-title { font-size: 21px; }
+      .preview-day { padding-left: 43px; }
+      .preview-day-head { display: block; }
+      .preview-date { margin-top: 2px; }
+      .meal-row { grid-template-columns: 48px 1fr; }
+      .meal-item { grid-column: 2; }
+      .modal-backdrop { padding: 8px; }
+      .import-modal { max-height: calc(100vh - 16px); border-radius: 16px; }
+    }
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      body { background: #fff; font-size: 10pt; }
+      .topbar, .mobile-tabs, .editor-panel, .toast { display: none !important; }
+      .workspace { display: block; width: auto; min-height: 0; margin: 0; padding: 0; }
+      .preview-panel { display: block !important; padding: 0; border: 0; background: #fff; box-shadow: none; }
+      .preview-shell { max-width: none; min-height: 0; margin: 0; padding: 0; border-radius: 0; box-shadow: none; }
+      .preview-title { font-size: 20pt; }
+      .preview-kicker { margin-bottom: 18px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .preview-day { break-inside: avoid; margin-bottom: 14px; padding-bottom: 14px; }
+      .preview-day-label, .info-list li::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .info-section { break-inside: avoid; margin-top: 20px; padding-top: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">行</div>
+      <div>
+        <h1>旅行线路定制</h1>
+        <div class="save-state" id="saveState">已自动保存</div>
+      </div>
+    </div>
+    <div class="task-switcher">
+      <button class="btn task-trigger" id="taskTrigger" type="button"><span id="currentTaskName">当前线路</span><b aria-hidden="true">⌄</b></button>
+      <div class="task-menu" id="taskMenu" hidden>
+        <div class="task-list" id="taskList"></div>
+        <div class="task-menu-actions">
+          <button class="btn" id="newBlankTaskBtn" type="button">＋ 空白线路</button>
+          <button class="btn" id="duplicateTaskBtn" type="button">复制当前</button>
+          <button class="btn" id="importReferenceBtn" type="button">上传参考线路</button>
+          <button class="btn" id="deepseekSettingsBtn" type="button">DeepSeek 设置</button>
+          <button class="btn" id="backupTasksBtn" type="button">备份任务库</button>
+          <button class="btn" id="restoreTasksBtn" type="button">恢复任务库</button>
+        </div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="undoBtn" type="button" disabled>↶ 撤销</button>
+      <button class="btn reset-btn" id="resetBtn" type="button" title="恢复保存的示例"><span class="reset-label">恢复示例</span><span aria-hidden="true">↺</span></button>
+      <div class="export-switcher">
+        <button class="btn btn-primary" id="exportTrigger" type="button" aria-expanded="false"><span aria-hidden="true">⇩</span> 导出 <b aria-hidden="true">⌄</b></button>
+        <div class="export-menu" id="exportMenu" hidden>
+          <button class="btn" id="exportWordBtn" type="button">导出 Word</button>
+          <button class="btn" id="exportPdfBtn" type="button">导出 PDF</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <nav class="mobile-tabs" aria-label="移动端视图切换">
+      <button class="mobile-tab active" type="button" data-mode="edit">编辑线路</button>
+      <button class="mobile-tab" type="button" data-mode="preview">客户预览</button>
+    </nav>
+
+    <section class="panel editor-panel">
+      <div class="editor-scroll">
+        <section class="section">
+          <h3 class="section-title">线路标题</h3>
+          <label class="field">
+            <span>客户版标题</span>
+            <input id="titleInput" maxlength="80" placeholder="例如：重庆、成都双飞6日游">
+          </label>
+          <label class="field">
+            <span>行程亮点</span>
+            <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认不显示"></textarea>
+          </label>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title"><span>每日行程</span><small id="dayCount"></small></h3>
+          <div id="daysEditor"></div>
+          <button class="btn" id="addDayBottom" type="button" style="width:100%">＋ 新增一天</button>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title">接待标准</h3>
+          <label class="field">
+            <span>每行一项</span>
+            <textarea id="standardsInput" rows="7"></textarea>
+          </label>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title">特别说明</h3>
+          <label class="field">
+            <span>每行一项</span>
+            <textarea id="notesInput" rows="5"></textarea>
+          </label>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel preview-panel" aria-label="客户版预览">
+      <article class="preview-shell" id="preview"></article>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="calendar-popover" id="calendarPopover" hidden></div>
+  <input id="restoreTasksInput" type="file" accept="application/json,.json" hidden>
+  <div class="modal-backdrop" id="importModal" hidden>
+    <section class="import-modal" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+      <div class="modal-head">
+        <h2 id="importModalTitle">上传参考线路</h2>
+        <button class="modal-close" id="closeImportBtn" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="importSetup">
+          <p class="import-note"><strong>识别说明：</strong>文件会先在浏览器本地提取文字，再发送给已绑定的 DeepSeek API。TXT 可直接读取，DOCX/PDF 会加载浏览器端解析组件，旧版二进制 DOC 可能无法识别。</p>
+          <label class="field"><span>参考线路文件</span><input id="referenceFileInput" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"></label>
+          <label class="field"><span>或粘贴参考线路原文</span><textarea id="referenceTextInput" rows="5" placeholder="可直接粘贴供应商发来的行程文字"></textarea></label>
+          <p class="parser-hint" id="importProviderHint"></p>
+        </div>
+        <div class="import-status" id="importStatus" hidden></div>
+        <div class="import-review" id="importReview" hidden></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cancelImportBtn" type="button">取消</button>
+        <button class="btn btn-primary" id="startImportBtn" type="button">开始识别</button>
+        <button class="btn btn-primary" id="confirmImportBtn" type="button" hidden>创建新任务</button>
+      </div>
+    </section>
+  </div>
+  <div class="modal-backdrop" id="apiModal" hidden>
+    <section class="import-modal" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
+      <div class="modal-head">
+        <h2 id="apiModalTitle">DeepSeek API 绑定</h2>
+        <button class="modal-close" id="closeApiBtn" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body api-card">
+        <p class="import-note"><strong>安全提示：</strong>密钥会保存在当前浏览器本地，便于长期使用。只在个人电脑上保存；如更换电脑或浏览器，需要重新绑定。</p>
+        <label class="field"><span>API 密钥</span><input id="deepseekKeyInput" type="password" autocomplete="new-password" placeholder="sk-..."></label>
+        <label class="field"><span>默认模型</span>
+          <select id="deepseekModelInput">
+            <option value="deepseek-v4-flash">deepseek-v4-flash（推荐）</option>
+            <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+            <option value="deepseek-chat">deepseek-chat（兼容）</option>
+          </select>
+        </label>
+        <div class="api-status" id="deepseekStatus"><strong>未绑定</strong><span>保存密钥后可测试连接并查看余额。</span></div>
+        <div class="balance-grid" id="deepseekBalance" hidden></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="clearDeepseekBtn" type="button">清除绑定</button>
+        <button class="btn" id="refreshBalanceBtn" type="button">刷新余额</button>
+        <button class="btn" id="testDeepseekBtn" type="button">测试连接</button>
+        <button class="btn btn-primary" id="saveDeepseekBtn" type="button">保存绑定</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "trip-plan-single-file-v1";
+      const SAVED_EXAMPLE_KEY = "trip-plan-saved-example-v1";
+      const LIBRARY_KEY = "trip-plan-task-library-v1";
+      const DEEPSEEK_KEY = "trip-plan-deepseek-settings-v1";
+      const example = {
+        title: "重庆、成都双飞6日游",
+        days: [
+          { date:"2025-08-01", weekday:"周五", route:"大连 — 重庆", morning:"大连乘机飞往重庆，抵达后前往解放碑商圈（约30分钟），自由感受都市繁华与网红打卡地；", afternoon:"游览【洪崖洞】夜景，体验吊脚楼风情与夜市美食。", lodging:"重庆市区酒店", breakfast:"—", lunch:"集体用餐", dinner:"集体用餐", flight:"早班机" },
+          { date:"2025-08-02", weekday:"周六", route:"重庆", morning:"游览【磁器口古镇】，感受巴渝民俗文化和古街美食；", afternoon:"游览【长江索道】与【南山一棵树观景台】，俯瞰重庆城市风光。", lodging:"重庆市区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:"" },
+          { date:"2025-08-03", weekday:"周日", route:"重庆 — 成都（约5小时）", morning:"乘车前往成都，沿途欣赏川渝风光；", afternoon:"抵达成都后游览【锦里古街】及【宽窄巷子】，感受巴蜀历史文化氛围。", lodging:"成都市区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:"" },
+          { date:"2025-08-04", weekday:"周一", route:"成都 — 都江堰 — 青城山（约2小时）", morning:"游览世界文化遗产【都江堰景区】，体验千年水利奇迹；", afternoon:"游览道教名山【青城山】，漫步绿意竹林，感受自然仙境。", lodging:"成都市区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:"" },
+          { date:"2025-08-05", weekday:"周二", route:"成都 — 乐山 — 峨眉山（约3小时）", morning:"游览【乐山大佛】，欣赏世界最大石刻佛像壮丽景观；", afternoon:"前往【峨眉山】，可游报国寺及初级山脚景点，体验金顶仙境风光（缆车自理）。", lodging:"峨眉山景区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:"" },
+          { date:"2025-08-06", weekday:"周三", route:"峨眉山 — 成都 — 大连", morning:"可自由活动游览峨眉山景区附近；", afternoon:"乘车返回成都双流机场，乘机返回大连，结束旅程。", lodging:"—", breakfast:"酒店含", lunch:"自理", dinner:"—", flight:"晚班机" }
+        ],
+        standards: [
+          "航班：大连/重庆、成都/大连往返经济舱含税，按实际人数出票",
+          "交通：当地空调旅游车（保证每人1正座）",
+          "住宿：市区四钻酒店双人标准间，单房差 500元/人",
+          "用餐：5早7正餐（酒店含早，不用不退，正餐餐标60元/人起）",
+          "导游：当地专职导游服务（不含全陪）",
+          "景点：行程所列非自费项目首道门票费",
+          "保险：旅行社责任险、旅游意外险，理赔最终解决权归保险公司"
+        ],
+        notes: [
+          "成人必须携带有效身份证（如因忘带导致无法乘机或入住酒店责任自理）",
+          "客人自愿放弃住宿、用餐、景点或游客自愿离团，本社不予返还费用",
+          "因人力、天气、政策等不可抗拒因素造成的团队滞留或政策性调价产生的费用，由客人自理，本社可协助解决"
+        ]
+      };
+      const fields = [
+        ["route","当天路线","例如：大连 — 重庆","input"],
+        ["date","日期","","date"], ["flight","交通方式","交通工具、班次或时间","input"],
+        ["morning","午前安排","填写午前活动","textarea"], ["afternoon","午后安排","填写午后活动","textarea"],
+        ["remark","备注","选填，默认不显示","textarea"], ["lodging","住宿","例如：重庆市区酒店","input"], ["breakfast","早餐","例如：酒店含","input"],
+        ["lunch","午餐","例如：集体用餐","input"], ["dinner","晚餐","例如：自理","input"]
+      ];
+      const $ = s => document.querySelector(s);
+      const clone = value => JSON.parse(JSON.stringify(value));
+      const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+      const lines = value => String(value || "").split("\n").map(v => v.trim()).filter(Boolean);
+      const weekdays = ["周日","周一","周二","周三","周四","周五","周六"];
+      let library = loadLibrary();
+      let data = currentTask().data;
+      let saveTimer;
+      let toastTimer;
+      let calendarState = { index: -1, view: null, selected: null };
+      let dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
+      let suppressDragClickUntil = 0;
+      const histories = {};
+      let sizeObserver;
+      let importState = {busy:false,file:null,result:null,controller:null};
+      let deepseekSettings = loadDeepseekSettings();
+      const importSchema = {
+        type:"object", additionalProperties:false,
+        properties:{
+          title:{type:"string"}, highlights:{type:"array",items:{type:"string"}},
+          days:{type:"array",items:{
+            type:"object", additionalProperties:false,
+            properties:{
+              date:{type:"string"}, route:{type:"string"}, flight:{type:"string"},
+              morning:{type:"string"}, afternoon:{type:"string"}, remark:{type:"string"},
+              lodging:{type:"string"}, breakfast:{type:"string"}, lunch:{type:"string"}, dinner:{type:"string"}
+            },
+            required:["date","route","flight","morning","afternoon","remark","lodging","breakfast","lunch","dinner"]
+          }},
+          standards:{type:"array",items:{type:"string"}}, notes:{type:"array",items:{type:"string"}},
+          warnings:{type:"array",items:{type:"string"}}, missingFields:{type:"array",items:{type:"string"}}
+        },
+        required:["title","highlights","days","standards","notes","warnings","missingFields"]
+      };
+
+      function uid() {
+        return `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+      }
+      function loadDeepseekSettings() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(DEEPSEEK_KEY));
+          if (saved?.apiKey) return {apiKey:String(saved.apiKey),model:String(saved.model || "deepseek-v4-flash"),balance:saved.balance || null,checkedAt:saved.checkedAt || ""};
+        } catch (_) {}
+        return {apiKey:"",model:"deepseek-v4-flash",balance:null,checkedAt:""};
+      }
+      function saveDeepseekSettings() {
+        localStorage.setItem(DEEPSEEK_KEY,JSON.stringify(deepseekSettings));
+      }
+      function maskedKey(value) {
+        return value ? `${value.slice(0,6)}••••${value.slice(-4)}` : "未绑定";
+      }
+      function deepseekHeaders(key = deepseekSettings.apiKey) {
+        return {"Content-Type":"application/json",Authorization:`Bearer ${key}`};
+      }
+      function loadLegacy() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (saved && Array.isArray(saved.days)) return normalizeSavedDates(saved);
+        } catch (_) {}
+        return clone(example);
+      }
+      function loadLibrary() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(LIBRARY_KEY));
+          if (saved?.version === 1 && Array.isArray(saved.tasks) && saved.tasks.length) return saved;
+        } catch (_) {}
+        const id = uid();
+        return { version:1, currentId:id, tasks:[{id,data:loadLegacy(),updatedAt:Date.now()}] };
+      }
+      function currentTask() {
+        return library.tasks.find(task => task.id === library.currentId) || library.tasks[0];
+      }
+      function currentHistory() {
+        histories[library.currentId] ||= [];
+        return histories[library.currentId];
+      }
+      function taskBaseName(task) {
+        return String(task.data?.title || "未命名线路").trim() || "未命名线路";
+      }
+      function taskDisplayName(task) {
+        const base = taskBaseName(task);
+        const same = library.tasks.filter(item => taskBaseName(item) === base).sort((a,b) => a.updatedAt - b.updatedAt);
+        const index = same.findIndex(item => item.id === task.id);
+        return same.length > 1 ? `${base}（${index + 1}）` : base;
+      }
+      function blankTaskData() {
+        return {
+          title:"", highlights:"",
+          days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",breakfast:"",lunch:"",dinner:"",flight:""}],
+          standards:clone(example.standards), notes:clone(example.notes), _heights:clone(data?._heights || {})
+        };
+      }
+      function savedExample() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(SAVED_EXAMPLE_KEY));
+          if (saved && Array.isArray(saved.days)) return saved;
+        } catch (_) {}
+        return clone(example);
+      }
+      function captureCurrentAsExample() {
+        try {
+          if (!localStorage.getItem(SAVED_EXAMPLE_KEY)) localStorage.setItem(SAVED_EXAMPLE_KEY,JSON.stringify(data));
+        } catch (_) {}
+      }
+      function toIso(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+      }
+      function parseDate(value, weekday = "") {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value || "")) {
+          const [year,month,day] = value.split("-").map(Number);
+          return new Date(year,month - 1,day);
+        }
+        const match = String(value || "").match(/(\d{1,2})月(\d{1,2})日/);
+        if (!match) return null;
+        const month = Number(match[1]), day = Number(match[2]);
+        for (let year = 2024; year <= 2030; year++) {
+          const candidate = new Date(year,month - 1,day);
+          if (!weekday || weekdays[candidate.getDay()] === weekday) return candidate;
+        }
+        return new Date(new Date().getFullYear(),month - 1,day);
+      }
+      function formatDate(value) {
+        const date = parseDate(value);
+        return date ? `${date.getMonth() + 1}月${date.getDate()}日` : "";
+      }
+      function normalizeSavedDates(saved) {
+        saved.days.forEach(day => {
+          const parsed = parseDate(day.date,day.weekday);
+          if (parsed) {
+            day.date = toIso(parsed);
+            day.weekday = weekdays[parsed.getDay()];
+          }
+        });
+        return saved;
+      }
+      function syncDates(anchorIndex, value) {
+        const anchor = parseDate(value);
+        if (!anchor) {
+          data.days.forEach(day => {
+            day.date = "";
+            day.weekday = "";
+          });
+          return;
+        }
+        data.days.forEach((day,index) => {
+          const date = new Date(anchor);
+          date.setDate(anchor.getDate() + index - anchorIndex);
+          day.date = toIso(date);
+          day.weekday = weekdays[date.getDay()];
+        });
+      }
+      function persistLibrary() {
+        const task = currentTask();
+        task.data = data;
+        task.updatedAt = Date.now();
+        localStorage.setItem(LIBRARY_KEY,JSON.stringify(library));
+      }
+      function save() {
+        clearTimeout(saveTimer);
+        $("#saveState").textContent = "正在保存…";
+        saveTimer = setTimeout(() => {
+          try {
+            persistLibrary();
+            renderTaskMenu();
+            $("#saveState").textContent = "已自动保存";
+          } catch (error) {
+            $("#saveState").textContent = "保存空间不足，请先备份任务库";
+            toast("保存空间不足，请先备份任务库");
+          }
+        }, 220);
+      }
+      function updateUndoButton() {
+        const button = $("#undoBtn");
+        const history = currentHistory();
+        button.disabled = history.length === 0;
+        button.title = history.length ? `撤销上一步（剩余 ${history.length} 步）` : "暂无可撤销操作";
+      }
+      function remember() {
+        const history = currentHistory();
+        history.push(clone(data));
+        if (history.length > 100) history.shift();
+        updateUndoButton();
+      }
+      function undo() {
+        const history = currentHistory();
+        const previous = history.pop();
+        if (!previous) return;
+        data = previous;
+        closeCalendar();
+        renderAll();
+        save();
+        updateUndoButton();
+        toast("已撤销上一步");
+      }
+      function toast(message) {
+        const el = $("#toast");
+        el.textContent = message; el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+      }
+      function renderTaskMenu() {
+        const sorted = [...library.tasks].sort((a,b) => b.updatedAt - a.updatedAt);
+        $("#currentTaskName").textContent = taskDisplayName(currentTask());
+        $("#taskList").innerHTML = sorted.map(task => `
+          <div class="task-item ${task.id === library.currentId ? "active" : ""}">
+            <button class="task-select" type="button" data-task-id="${task.id}">
+              <strong>${esc(taskDisplayName(task))}</strong>
+              <small>${new Date(task.updatedAt).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</small>
+            </button>
+            <button class="task-delete" type="button" data-delete-task="${task.id}" ${library.tasks.length === 1 ? "disabled" : ""}>删除</button>
+          </div>`).join("");
+      }
+      function closeTaskMenu() { $("#taskMenu").hidden = true; }
+      function switchTask(id) {
+        if (id === library.currentId) { closeTaskMenu(); return; }
+        const task = library.tasks.find(item => item.id === id);
+        if (!task) return;
+        clearTimeout(saveTimer);
+        try { persistLibrary(); } catch (_) {}
+        library.currentId = id;
+        data = task.data;
+        closeCalendar();
+        closeTaskMenu();
+        renderAll();
+        updateUndoButton();
+        save();
+        toast(`已切换到：${taskDisplayName(task)}`);
+      }
+      function createTask(source) {
+        clearTimeout(saveTimer);
+        try { persistLibrary(); } catch (_) {}
+        const id = uid();
+        const taskData = source === "duplicate" ? clone(data) : blankTaskData();
+        if (source === "duplicate") taskData.title = `${taskBaseName(currentTask())} 副本`;
+        library.tasks.push({id,data:taskData,updatedAt:Date.now()});
+        library.currentId = id;
+        data = taskData;
+        closeTaskMenu();
+        renderAll();
+        updateUndoButton();
+        save();
+        toast(source === "duplicate" ? "已复制为新任务" : "已新建空白线路");
+      }
+      function openImportModal() {
+        closeTaskMenu();
+        importState = {busy:false,file:null,result:null,controller:null};
+        $("#referenceFileInput").value = "";
+        $("#referenceTextInput").value = "";
+        $("#importProviderHint").textContent = deepseekSettings.apiKey
+          ? `当前使用 DeepSeek：${deepseekSettings.model}，密钥 ${maskedKey(deepseekSettings.apiKey)}`
+          : "尚未绑定 DeepSeek API，请先在任务菜单中打开“DeepSeek 设置”。";
+        $("#importSetup").hidden = false;
+        $("#importStatus").hidden = true;
+        $("#importReview").hidden = true;
+        $("#startImportBtn").hidden = false;
+        $("#confirmImportBtn").hidden = true;
+        $("#cancelImportBtn").disabled = false;
+        $("#closeImportBtn").disabled = false;
+        $("#importModal").hidden = false;
+        setTimeout(() => $("#referenceFileInput").focus(),0);
+      }
+      function closeImportModal() {
+        if (importState.busy) return;
+        $("#importModal").hidden = true;
+        importState = {busy:false,file:null,result:null,controller:null};
+      }
+      function setImportBusy(message) {
+        importState.busy = true;
+        $("#importSetup").hidden = true;
+        $("#importReview").hidden = true;
+        $("#importStatus").hidden = false;
+        $("#importStatus").className = "import-status busy";
+        $("#importStatus").textContent = message;
+        $("#startImportBtn").disabled = true;
+        $("#cancelImportBtn").disabled = true;
+        $("#closeImportBtn").disabled = true;
+      }
+      function setImportError(message) {
+        importState.busy = false;
+        $("#importSetup").hidden = false;
+        $("#importStatus").hidden = false;
+        $("#importStatus").className = "import-status";
+        $("#importStatus").textContent = message;
+        $("#startImportBtn").disabled = false;
+        $("#cancelImportBtn").disabled = false;
+        $("#closeImportBtn").disabled = false;
+      }
+      function openApiModal() {
+        closeTaskMenu();
+        $("#deepseekKeyInput").value = deepseekSettings.apiKey;
+        $("#deepseekModelInput").value = deepseekSettings.model || "deepseek-v4-flash";
+        renderDeepseekStatus();
+        $("#apiModal").hidden = false;
+        setTimeout(() => $("#deepseekKeyInput").focus(),0);
+      }
+      function closeApiModal() { $("#apiModal").hidden = true; }
+      function renderDeepseekStatus(message = "") {
+        const bound = Boolean(deepseekSettings.apiKey);
+        const checked = deepseekSettings.checkedAt ? `上次检查：${new Date(deepseekSettings.checkedAt).toLocaleString("zh-CN")}` : "尚未检查余额";
+        $("#deepseekStatus").innerHTML = `<strong>${bound ? "已绑定 DeepSeek" : "未绑定"}</strong><span>${message || (bound ? `${maskedKey(deepseekSettings.apiKey)} · ${deepseekSettings.model} · ${checked}` : "保存密钥后可测试连接并查看余额。")}</span>`;
+        const balances = deepseekSettings.balance?.balance_infos || [];
+        $("#deepseekBalance").hidden = !balances.length;
+        $("#deepseekBalance").innerHTML = balances.map(item => `
+          <div class="balance-item"><span>${esc(item.currency || "余额")}</span><strong>${esc(item.total_balance || "0")}</strong><span>赠金 ${esc(item.granted_balance || "0")} · 充值 ${esc(item.topped_up_balance || "0")}</span></div>`).join("");
+      }
+      function setApiBusy(message) {
+        $("#deepseekStatus").innerHTML = `<strong>正在处理…</strong><span>${esc(message)}</span>`;
+        ["saveDeepseekBtn","testDeepseekBtn","refreshBalanceBtn","clearDeepseekBtn"].forEach(id => $(`#${id}`).disabled = true);
+      }
+      function clearApiBusy() {
+        ["saveDeepseekBtn","testDeepseekBtn","refreshBalanceBtn","clearDeepseekBtn"].forEach(id => $(`#${id}`).disabled = false);
+      }
+      function readDateParts(value) {
+        const text = String(value || "").trim();
+        let match = text.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
+        if (match) return {full:true,year:Number(match[1]),month:Number(match[2]),day:Number(match[3])};
+        match = text.match(/^(\d{1,2})[-/.月](\d{1,2})日?$/);
+        return match ? {full:false,month:Number(match[1]),day:Number(match[2])} : null;
+      }
+      function validDateParts(parts) {
+        const year = parts.year || 2028;
+        const date = new Date(year,parts.month - 1,parts.day);
+        return date.getFullYear() === year && date.getMonth() === parts.month - 1 && date.getDate() === parts.day;
+      }
+      function nearestFutureDate(month,day) {
+        const today = new Date(); today.setHours(0,0,0,0);
+        for (let year = today.getFullYear(); year <= today.getFullYear() + 8; year++) {
+          const date = new Date(year,month - 1,day);
+          if (date.getMonth() === month - 1 && date.getDate() === day && date >= today) return date;
+        }
+        return null;
+      }
+      function normalizeImportedResult(raw) {
+        const text = value => typeof value === "string" ? value.trim() : "";
+        const list = value => Array.isArray(value) ? value.map(text).filter(Boolean) : [];
+        const warnings = list(raw?.warnings);
+        const missingFields = list(raw?.missingFields);
+        const days = Array.isArray(raw?.days) ? raw.days.map(day => ({
+          date:text(day?.date), weekday:"", route:text(day?.route), flight:text(day?.flight),
+          morning:text(day?.morning), afternoon:text(day?.afternoon), remark:text(day?.remark),
+          lodging:text(day?.lodging), breakfast:text(day?.breakfast), lunch:text(day?.lunch), dinner:text(day?.dinner)
+        })) : [];
+        if (!days.length) throw new Error("未识别到每日行程，请确认文件中包含 D1、D2 等每日内容。");
+        const dateParts = days.map(day => readDateParts(day.date));
+        const hasDate = dateParts.some(Boolean);
+        const hasFullDate = dateParts.some(parts => parts?.full);
+        let dateConflict = false;
+        if (hasFullDate) {
+          const dates = dateParts.map(parts => parts?.full && validDateParts(parts) ? new Date(parts.year,parts.month - 1,parts.day) : null);
+          dateConflict = dates.some(date => !date) || dates.some((date,index) => {
+            if (index === 0) return false;
+            const expected = new Date(dates[index - 1]); expected.setDate(expected.getDate() + 1);
+            return date.getTime() !== expected.getTime();
+          });
+          if (!dateConflict) dates.forEach((date,index) => {
+            days[index].date = toIso(date); days[index].weekday = weekdays[date.getDay()];
+          });
+        } else if (hasDate) {
+          const anchorIndex = dateParts.findIndex(Boolean);
+          const anchorParts = dateParts[anchorIndex];
+          if (!validDateParts({...anchorParts,year:2028})) dateConflict = true;
+          else {
+            const anchor = nearestFutureDate(anchorParts.month,anchorParts.day);
+            if (!anchor) dateConflict = true;
+            else {
+              const start = new Date(anchor); start.setDate(anchor.getDate() - anchorIndex);
+              days.forEach((day,index) => {
+                const date = new Date(start); date.setDate(start.getDate() + index);
+                const stated = dateParts[index];
+                if (stated && (stated.month !== date.getMonth() + 1 || stated.day !== date.getDate())) dateConflict = true;
+                day.date = toIso(date); day.weekday = weekdays[date.getDay()];
+              });
+            }
+          }
+        }
+        if (dateConflict) {
+          days.forEach(day => { day.date = ""; day.weekday = ""; });
+          warnings.push("日期存在缺失或顺序冲突，已保持全部日期为空，请手动选择首日日期。");
+        } else if (!hasDate) {
+          days.forEach(day => { day.date = ""; day.weekday = ""; });
+          warnings.push("文件未提供日期，已保持全部日期为空。");
+        } else if (!hasFullDate) {
+          warnings.push("文件未提供年份，已按最近尚未过去的日期自动推算。");
+        }
+        const taskData = {
+          title:text(raw?.title), highlights:list(raw?.highlights).join("\n"), days,
+          standards:list(raw?.standards), notes:list(raw?.notes), _heights:clone(data?._heights || {})
+        };
+        return {data:taskData,warnings:[...new Set(warnings)],missingFields:[...new Set(missingFields)]};
+      }
+      function importPrompt(text) {
+        return `请从下面的旅行线路原文中提取内容并严格输出 JSON。
+规则：
+1. 不得编造原文没有的信息；不确定的字段返回空字符串。
+2. 每日行程按原文顺序拆分。日期保留原文可确认的年月日；没有年份时返回“月日”，没有日期时为空。
+3. 午前、午后保留原文换行；无法判断属于哪个栏目的每日内容放入当天 remark，并在 warnings 说明。
+4. 早餐、午餐、晚餐分别提取；接待标准、特别说明、行程亮点每项单独返回。
+5. missingFields 列出原文未提供的重要栏目，warnings 列出歧义、无法归类或可能需要人工确认的内容。
+6. 如果文件不是旅行线路或无法识别每日行程，days 返回空数组，不要猜测。
+7. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
+
+JSON 格式：
+{"title":"","highlights":[],"days":[{"date":"","route":"","flight":"","morning":"","afternoon":"","remark":"","lodging":"","breakfast":"","lunch":"","dinner":""}],"standards":[],"notes":[],"warnings":[],"missingFields":[]}
+
+旅行线路原文：
+${text}`;
+      }
+      async function requestJson(url,options,provider = "API") {
+        let response;
+        try { response = await fetch(url,options); }
+        catch (_) { throw new Error(`无法连接 ${provider}，请检查网络或浏览器跨域限制。`); }
+        let payload = {};
+        try { payload = await response.json(); } catch (_) {}
+        if (!response.ok) {
+          const message = payload?.error?.message || `请求失败（${response.status}）`;
+          if (response.status === 401) throw new Error("API 密钥无效或已失效。");
+          if (response.status === 402) throw new Error("API 余额不足，请充值后重试。");
+          if (response.status === 429) throw new Error("API 请求过于频繁，请稍后重试。");
+          throw new Error(message);
+        }
+        return payload;
+      }
+      function parseModelJson(content) {
+        const cleaned = String(content || "").trim().replace(/^```json\s*/i,"").replace(/^```\s*/,"").replace(/```$/,"").trim();
+        return JSON.parse(cleaned);
+      }
+      async function refreshDeepseekBalance() {
+        if (!deepseekSettings.apiKey) throw new Error("请先保存 DeepSeek API 密钥。");
+        const balance = await requestJson("https://api.deepseek.com/user/balance",{
+          method:"GET", headers:{Authorization:`Bearer ${deepseekSettings.apiKey}`,Accept:"application/json"}
+        },"DeepSeek");
+        deepseekSettings.balance = balance;
+        deepseekSettings.checkedAt = new Date().toISOString();
+        saveDeepseekSettings();
+        return balance;
+      }
+      async function testDeepseekConnection() {
+        if (!deepseekSettings.apiKey) throw new Error("请先保存 DeepSeek API 密钥。");
+        await requestJson("https://api.deepseek.com/chat/completions",{
+          method:"POST",
+          headers:deepseekHeaders(),
+          body:JSON.stringify({
+            model:deepseekSettings.model || "deepseek-v4-flash",
+            messages:[{role:"user",content:"请只回复 JSON：{\"ok\":true}"}],
+            response_format:{type:"json_object"},
+            stream:false,
+            max_tokens:30
+          })
+        },"DeepSeek");
+        return refreshDeepseekBalance();
+      }
+      async function recognizeReferenceText(text) {
+        const response = await requestJson("https://api.deepseek.com/chat/completions",{
+          method:"POST",
+          headers:deepseekHeaders(),
+          body:JSON.stringify({
+            model:deepseekSettings.model || "deepseek-v4-flash",
+            messages:[
+              {role:"system",content:"你是旅行线路结构化助手。你必须只输出合法 JSON，不得编造原文没有的信息。"},
+              {role:"user",content:importPrompt(text)}
+            ],
+            response_format:{type:"json_object"},
+            stream:false,
+            max_tokens:8192
+          })
+        },"DeepSeek");
+        const content = response?.choices?.[0]?.message?.content || "";
+        if (!content) throw new Error("DeepSeek 未返回可用的识别结果。");
+        return normalizeImportedResult(parseModelJson(content));
+      }
+      function loadScriptOnce(src,globalName) {
+        if (window[globalName]) return Promise.resolve(window[globalName]);
+        return new Promise((resolve,reject) => {
+          const script = document.createElement("script");
+          script.src = src; script.async = true;
+          script.onload = () => window[globalName] ? resolve(window[globalName]) : reject(new Error("解析组件加载失败。"));
+          script.onerror = () => reject(new Error("解析组件加载失败，请检查网络。"));
+          document.head.appendChild(script);
+        });
+      }
+      async function extractTxt(file) {
+        return file.text();
+      }
+      async function extractDocx(file) {
+        setImportBusy("正在加载 Word 解析组件…");
+        const mammoth = await loadScriptOnce("https://cdn.jsdelivr.net/npm/mammoth@1.9.1/mammoth.browser.min.js","mammoth");
+        setImportBusy("正在读取 Word 文本…");
+        const result = await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
+        const text = result?.value || "";
+        if (!text.trim()) throw new Error("未能从 Word 文件中提取文字，请确认文件不是图片扫描件。");
+        return text;
+      }
+      function bytesToText(bytes) {
+        const chunk = new Uint8Array(bytes).slice(0,4096);
+        let binary = "";
+        chunk.forEach(value => binary += String.fromCharCode(value));
+        if (/<html|<body|<table|<p[\s>]/i.test(binary)) return new TextDecoder("utf-8").decode(bytes);
+        return "";
+      }
+      async function extractDoc(file) {
+        setImportBusy("正在读取 Word 文本…");
+        const buffer = await file.arrayBuffer();
+        const text = bytesToText(buffer);
+        if (text.trim()) return new DOMParser().parseFromString(text,"text/html").body.textContent || text;
+        throw new Error("旧版二进制 DOC 无法在浏览器内稳定解析，请另存为 DOCX 或 PDF 后再上传。");
+      }
+      async function extractPdf(file) {
+        setImportBusy("正在加载 PDF 解析组件…");
+        const pdfjsLib = await loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","pdfjsLib");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        setImportBusy("正在读取 PDF 文本…");
+        const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+        const pages = [];
+        for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+          setImportBusy(`正在读取 PDF 文本… ${pageNo}/${pdf.numPages}`);
+          const page = await pdf.getPage(pageNo);
+          const content = await page.getTextContent();
+          pages.push(content.items.map(item => item.str).join(" "));
+        }
+        const text = pages.join("\n\n");
+        if (!text.trim()) throw new Error("未能从 PDF 中提取文字，扫描件需要先 OCR 后再上传。");
+        return text;
+      }
+      async function extractReferenceText(file,pasted) {
+        if (pasted.trim()) return pasted.trim();
+        if (!file) throw new Error("请选择参考线路文件，或直接粘贴原文。");
+        if (file.size > 50 * 1024 * 1024) throw new Error("文件超过 50MB，请压缩或拆分后重试。");
+        const extension = file.name.split(".").pop()?.toLowerCase();
+        if (extension === "txt") return extractTxt(file);
+        if (extension === "docx") return extractDocx(file);
+        if (extension === "doc") return extractDoc(file);
+        if (extension === "pdf") return extractPdf(file);
+        throw new Error("仅支持 PDF、Word、TXT，或直接粘贴原文。");
+      }
+      function renderImportReview(file,result) {
+        const warningItems = [...result.warnings,...result.missingFields.map(value => `缺失栏目：${value}`)];
+        const sourceName = file?.name || "粘贴原文";
+        $("#importReview").innerHTML = `
+          <div class="review-summary"><strong>${esc(result.data.title || "未识别到标题")}</strong><span>${esc(sourceName)} · 共 ${result.data.days.length} 天</span></div>
+          ${warningItems.length ? `<section class="review-section review-warning"><h3>需要确认</h3><ul class="review-list">${warningItems.map(value => `<li>${esc(value)}</li>`).join("")}</ul></section>` : ""}
+          <section class="review-section"><h3>每日行程摘要</h3><div class="review-days">${result.data.days.map((day,index) => `<div class="review-day"><strong>D${index + 1}</strong>${esc(day.route || "路线未识别")}${day.date ? ` · ${esc(day.date)}` : ""}</div>`).join("")}</div></section>`;
+        $("#importSetup").hidden = true;
+        $("#importStatus").hidden = true;
+        $("#importReview").hidden = false;
+        $("#startImportBtn").hidden = true;
+        $("#confirmImportBtn").hidden = false;
+        $("#cancelImportBtn").disabled = false;
+        $("#closeImportBtn").disabled = false;
+      }
+      async function startReferenceImport() {
+        const file = $("#referenceFileInput").files?.[0];
+        const pasted = $("#referenceTextInput").value || "";
+        if (!deepseekSettings.apiKey) return setImportError("请先在“DeepSeek 设置”中保存 API 密钥。");
+        importState.file = file;
+        try {
+          setImportBusy("正在提取参考线路文字…");
+          const text = await extractReferenceText(file,pasted);
+          if (text.length < 20) throw new Error("提取到的文字太少，请确认文件内容是否正确。");
+          setImportBusy("正在调用 DeepSeek 识别并整理栏目…");
+          const result = await recognizeReferenceText(text.slice(0,260000));
+          if (text.length > 260000) result.warnings.push("原文过长，已截取前 26 万字进行识别。");
+          importState.result = result;
+          importState.busy = false;
+          renderImportReview(file,result);
+        } catch (error) {
+          importState.busy = false;
+          setImportError(error.message || "识别失败，请稍后重试。");
+        }
+      }
+      function confirmReferenceImport() {
+        if (!importState.result) return;
+        clearTimeout(saveTimer);
+        try { persistLibrary(); } catch (_) {}
+        const id = uid();
+        library.tasks.push({id,data:clone(importState.result.data),updatedAt:Date.now()});
+        library.currentId = id;
+        data = currentTask().data;
+        closeImportModal();
+        renderAll();
+        renderTaskMenu();
+        updateUndoButton();
+        save();
+        toast("参考线路已创建为新任务");
+      }
+      function saveDeepseekFromForm() {
+        const apiKey = $("#deepseekKeyInput").value.trim();
+        const model = $("#deepseekModelInput").value;
+        if (!apiKey) {
+          renderDeepseekStatus("请输入 DeepSeek API 密钥。");
+          return;
+        }
+        deepseekSettings = {...deepseekSettings,apiKey,model};
+        saveDeepseekSettings();
+        renderDeepseekStatus("已保存绑定。建议点击“测试连接”确认可用。");
+        toast("DeepSeek 已保存");
+      }
+      async function testDeepseekFromForm() {
+        saveDeepseekFromForm();
+        if (!deepseekSettings.apiKey) return;
+        setApiBusy("正在测试连接并查询余额…");
+        try {
+          await testDeepseekConnection();
+          renderDeepseekStatus("连接正常，余额已更新。");
+          toast("DeepSeek 连接正常");
+        } catch (error) {
+          renderDeepseekStatus(error.message || "连接失败，请检查密钥。");
+        } finally {
+          clearApiBusy();
+        }
+      }
+      async function refreshBalanceFromForm() {
+        if ($("#deepseekKeyInput").value.trim()) saveDeepseekFromForm();
+        if (!deepseekSettings.apiKey) return renderDeepseekStatus("请先保存 DeepSeek API 密钥。");
+        setApiBusy("正在刷新余额…");
+        try {
+          await refreshDeepseekBalance();
+          renderDeepseekStatus("余额已更新。");
+          toast("余额已更新");
+        } catch (error) {
+          renderDeepseekStatus(error.message || "余额查询失败。");
+        } finally {
+          clearApiBusy();
+        }
+      }
+      function clearDeepseekBinding() {
+        if (!confirm("确定清除 DeepSeek 绑定吗？清除后需要重新输入 API 密钥。")) return;
+        deepseekSettings = {apiKey:"",model:"deepseek-v4-flash",balance:null,checkedAt:""};
+        localStorage.removeItem(DEEPSEEK_KEY);
+        $("#deepseekKeyInput").value = "";
+        $("#deepseekModelInput").value = "deepseek-v4-flash";
+        renderDeepseekStatus("已清除绑定。");
+        toast("DeepSeek 绑定已清除");
+      }
+      function deleteTask(id) {
+        if (library.tasks.length <= 1) return;
+        const task = library.tasks.find(item => item.id === id);
+        if (!task || !confirm(`确定删除“${taskDisplayName(task)}”吗？此操作无法撤销。`)) return;
+        library.tasks = library.tasks.filter(item => item.id !== id);
+        delete histories[id];
+        if (library.currentId === id) {
+          library.currentId = [...library.tasks].sort((a,b) => b.updatedAt - a.updatedAt)[0].id;
+          data = currentTask().data;
+          renderAll();
+          updateUndoButton();
+        }
+        save();
+        renderTaskMenu();
+        toast("任务已删除");
+      }
+      function downloadBlob(blob,filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url; link.download = filename;
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url),1000);
+      }
+      function backupTasks() {
+        try { persistLibrary(); } catch (_) {}
+        const backup = {type:"trip-plan-task-library",version:1,exportedAt:new Date().toISOString(),tasks:library.tasks};
+        downloadBlob(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}),`旅行线路任务库-${toIso(new Date())}.json`);
+        toast("任务库备份已导出");
+      }
+      function validBackup(value) {
+        return value?.type === "trip-plan-task-library" && value.version === 1 && Array.isArray(value.tasks)
+          && value.tasks.length > 0 && value.tasks.every(task => task?.data && Array.isArray(task.data.days));
+      }
+      async function restoreTasks(file) {
+        try {
+          const backup = JSON.parse(await file.text());
+          if (!validBackup(backup)) throw new Error("invalid");
+          persistLibrary();
+          backup.tasks.forEach(task => library.tasks.push({id:uid(),data:normalizeSavedDates(clone(task.data)),updatedAt:Date.now()}));
+          save();
+          renderTaskMenu();
+          toast(`已合并恢复 ${backup.tasks.length} 个任务`);
+        } catch (_) {
+          toast("备份文件无效，未导入任何任务");
+        }
+      }
+      function blankDay(index) {
+        const previous = data.days[index - 1];
+        const date = previous ? parseDate(previous.date) : null;
+        if (date) date.setDate(date.getDate() + 1);
+        return { date:date ? toIso(date) : "", weekday:date ? weekdays[date.getDay()] : "", route:`第${index + 1}天路线`, morning:"", afternoon:"", remark:"", lodging:"", breakfast:"", lunch:"", dinner:"", flight:"" };
+      }
+      function fieldHtml(day, index, field) {
+        const [key,label,placeholder,type] = field;
+        const value = esc(day[key]);
+        if (type === "date") return `<div class="field date-picker-wrap"><span>${label}</span><button class="date-trigger" type="button" data-calendar-index="${index}"><span class="${day.date ? "" : "placeholder"}">${day.date ? esc(day.date.replaceAll("-","/")) : "选择日期"}</span><b aria-hidden="true">▣</b></button></div>`;
+        return `<label class="field"><span>${label}</span>${type === "textarea"
+          ? `<textarea data-index="${index}" data-field="${key}" placeholder="${placeholder}" ${data._heights?.[key] ? `style="height:${data._heights[key]}px"` : ""}>${value}</textarea>`
+          : `<input type="text" data-index="${index}" data-field="${key}" value="${value}" placeholder="${placeholder}">`}</label>`;
+      }
+      function applyGlobalHeight(id) {
+        const element = $(`#${id}`);
+        element.style.height = data._heights?.[id] ? `${data._heights[id]}px` : "";
+      }
+      function captureCurrentSizes() {
+        data._heights ||= {};
+        document.querySelectorAll("textarea").forEach(textarea => {
+          const key = textarea.dataset.field || textarea.id;
+          if (key) data._heights[key] = Math.round(textarea.getBoundingClientRect().height);
+        });
+      }
+      function watchTextareaSizes() {
+        sizeObserver?.disconnect();
+        sizeObserver = new ResizeObserver(entries => {
+          let changed = false;
+          data._heights ||= {};
+          entries.forEach(({target}) => {
+            const key = target.dataset.field || target.id;
+            const height = Math.round(target.getBoundingClientRect().height);
+            if (key && data._heights[key] !== height) {
+              data._heights[key] = height;
+              changed = true;
+            }
+          });
+          if (changed) save();
+        });
+        document.querySelectorAll("textarea").forEach(textarea => sizeObserver.observe(textarea));
+      }
+      function calendarDayHtml(date, viewMonth) {
+        const iso = toIso(date);
+        const today = toIso(new Date());
+        const classes = ["calendar-day"];
+        if (date.getMonth() !== viewMonth) classes.push("other");
+        if (iso === today) classes.push("current");
+        if (calendarState.selected && iso === toIso(calendarState.selected)) classes.push("selected");
+        return `<button class="${classes.join(" ")}" type="button" data-calendar-day="${iso}">${date.getDate()}</button>`;
+      }
+      function renderCalendar() {
+        const popover = $("#calendarPopover");
+        const view = calendarState.view;
+        if (!view) return;
+        const year = view.getFullYear(), month = view.getMonth();
+        const first = new Date(year,month,1);
+        const start = new Date(year,month,1 - first.getDay());
+        const days = Array.from({length:42},(_,i) => {
+          const date = new Date(start); date.setDate(start.getDate() + i); return calendarDayHtml(date,month);
+        }).join("");
+        popover.innerHTML = `
+          <div class="calendar-head">
+            <div class="calendar-title">${year}年${String(month + 1).padStart(2,"0")}月</div>
+            <div class="calendar-nav">
+              <button type="button" data-calendar-action="prev" aria-label="上个月">‹</button>
+              <button type="button" data-calendar-action="next" aria-label="下个月">›</button>
+            </div>
+          </div>
+          <div class="calendar-week">${["日","一","二","三","四","五","六"].map(v => `<span>${v}</span>`).join("")}</div>
+          <div class="calendar-grid">${days}</div>
+          <div class="calendar-actions">
+            <button class="btn btn-small" type="button" data-calendar-action="clear">清除</button>
+            <button class="btn btn-small" type="button" data-calendar-action="today">今天</button>
+            <button class="btn btn-small btn-primary confirm" type="button" data-calendar-action="confirm" ${calendarState.selected ? "" : "disabled"}>确认</button>
+          </div>`;
+      }
+      function positionCalendar(trigger) {
+        const popover = $("#calendarPopover");
+        const rect = trigger.getBoundingClientRect();
+        const width = Math.min(310,window.innerWidth - 24);
+        const left = Math.max(12,Math.min(rect.left,window.innerWidth - width - 12));
+        const preferredTop = rect.bottom + 6;
+        const top = preferredTop + 390 < window.innerHeight ? preferredTop : Math.max(12,rect.top - 390);
+        popover.style.left = `${left}px`; popover.style.top = `${top}px`;
+      }
+      function openCalendar(index, trigger) {
+        const selected = parseDate(data.days[index]?.date);
+        calendarState = { index, selected, view:selected ? new Date(selected.getFullYear(),selected.getMonth(),1) : new Date(new Date().getFullYear(),new Date().getMonth(),1) };
+        renderCalendar();
+        $("#calendarPopover").hidden = false;
+        positionCalendar(trigger);
+      }
+      function closeCalendar() { $("#calendarPopover").hidden = true; calendarState.index = -1; }
+      function commitCalendar(value) {
+        if (calendarState.index < 0) return;
+        remember();
+        syncDates(calendarState.index,value);
+        const openIndex = calendarState.index;
+        closeCalendar(); renderAll(openIndex); save();
+        toast(value ? "全部日期和星期已自动调整" : "全部日期和星期已清除");
+      }
+      function renderEditor(openIndex = null) {
+        $("#titleInput").value = data.title || "";
+        $("#highlightsInput").value = data.highlights || "";
+        applyGlobalHeight("highlightsInput");
+        $("#standardsInput").value = (data.standards || []).join("\n");
+        applyGlobalHeight("standardsInput");
+        $("#notesInput").value = (data.notes || []).join("\n");
+        applyGlobalHeight("notesInput");
+        $("#dayCount").textContent = `共 ${data.days.length} 天`;
+        $("#daysEditor").innerHTML = data.days.length ? data.days.map((day,index) => `
+          <details class="day-card" ${openIndex === index ? "open" : ""}>
+            <summary>
+              <span class="day-badge">D${index + 1}</span>
+              <span class="day-summary"><strong>${esc(day.route || "未填写路线")}</strong>${day.date || day.weekday ? `<small>${esc([formatDate(day.date),day.weekday].filter(Boolean).join(" · "))}</small>` : ""}</span>
+              <button class="summary-delete" type="button" data-action="delete" data-index="${index}" aria-label="删除第${index + 1}天" title="删除这一天">删除</button>
+            </summary>
+            <div class="day-body">
+              ${fieldHtml(day,index,fields[0])}
+              <div class="grid-2">${fields.slice(1,3).map(f => fieldHtml(day,index,f)).join("")}</div>
+              ${fields.slice(3,5).map(f => fieldHtml(day,index,f)).join("")}
+              ${fieldHtml(day,index,fields[5])}
+              ${fieldHtml(day,index,fields[6])}
+              <div class="grid-3">${fields.slice(7).map(f => fieldHtml(day,index,f)).join("")}</div>
+            </div>
+          </details>`).join("") : `<div class="empty">还没有每日行程，点击“新增一天”开始编辑。</div>`;
+        requestAnimationFrame(watchTextareaSizes);
+      }
+      function renderPreview() {
+        document.title = data.title || "旅行线路定制";
+        const days = data.days.map((day,index) => `
+          <section class="preview-day">
+            <div class="preview-day-label">D${index + 1}</div>
+            <div class="preview-day-head">
+              <div class="preview-route">${esc(day.route || "路线待定")}</div>
+              ${day.date || day.weekday ? `<div class="preview-date">${esc([formatDate(day.date),day.weekday].filter(Boolean).join(" · "))}</div>` : ""}
+            </div>
+            ${day.flight ? `<div class="flight">交通方式：${esc(day.flight)}</div>` : ""}
+            <div class="schedule">
+              ${day.morning ? `<div class="schedule-row"><b>午前：</b><span>${esc(day.morning)}</span></div>` : ""}
+              ${day.afternoon ? `<div class="schedule-row"><b>午后：</b><span>${esc(day.afternoon)}</span></div>` : ""}
+              ${day.remark ? `<div class="schedule-row remark-row"><b>备注：</b><span>${esc(day.remark)}</span></div>` : ""}
+            </div>
+            <div class="meta-grid">
+              <div class="meta meal-row">
+                <b>餐饮：</b>
+                <span class="meal-item"><b>早</b><span>${esc(day.breakfast || "—")}</span></span>
+                <span class="meal-item"><b>午</b><span>${esc(day.lunch || "—")}</span></span>
+                <span class="meal-item"><b>晚</b><span>${esc(day.dinner || "—")}</span></span>
+              </div>
+              <div class="meta lodging-row"><b>住宿：</b><span>${esc(day.lodging || "待定")}</span></div>
+            </div>
+          </section>`).join("");
+        const list = (title, items) => items?.length ? `<section class="info-section"><h3>${title}</h3><ul class="info-list">${items.map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : "";
+        $("#preview").innerHTML = `
+          <h2 class="preview-title">${esc(data.title || "未命名旅行线路")}</h2>
+          <div class="preview-kicker">参考行程</div>
+          ${lines(data.highlights).length ? `<section class="preview-highlights"><h3>行程亮点</h3><ul>${lines(data.highlights).map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : ""}
+          <div class="itinerary">${days || `<div class="empty">行程内容待添加</div>`}</div>
+          ${list("接待标准",data.standards)}${list("特别说明",data.notes)}`;
+      }
+      function safeFilename(value) {
+        return String(value || "客户版行程").replace(/[\\/:*?"<>|]/g,"_").trim() || "客户版行程";
+      }
+      function exportWord() {
+        const previewHtml = $("#preview").innerHTML;
+        const style = `
+          body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#222;line-height:1.6;margin:32px}
+          h2{text-align:center;font-size:24px}.preview-kicker{text-align:center;color:#ff385c;margin-bottom:24px}
+          .preview-highlights{padding:12px 16px;background:#f7f7f7;margin-bottom:22px}.preview-highlights h3{margin:0 0 6px}
+          .preview-day{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #ddd}.preview-day-label{font-weight:bold;color:#ff385c}
+          .preview-day-head{display:flex;justify-content:space-between}.preview-route{font-weight:bold;font-size:16px}.preview-date,.flight{color:#6a6a6a;font-size:12px}
+          .schedule{margin:12px 0}.schedule-row{display:grid;grid-template-columns:52px 1fr;margin:6px 0}.schedule-row b{color:#ff385c}.remark-row,.remark-row b{color:#428bff}
+          .meal-row{display:grid;grid-template-columns:52px repeat(3,1fr);gap:8px}.lodging-row{display:grid;grid-template-columns:52px 1fr;margin-top:6px}
+          .info-section{margin-top:24px}.info-list{padding-left:20px}
+        `;
+        const word = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(data.title || "客户版行程")}</title><style>${style}</style></head><body>${previewHtml}</body></html>`;
+        const blob = new Blob(["\ufeff",word],{type:"application/msword"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${safeFilename(data.title)}.doc`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url),1000);
+        toast("Word 文件已导出");
+      }
+      function renderAll(openIndex = null) { renderEditor(openIndex); renderPreview(); }
+      function addDay() {
+        remember();
+        data.days.push(blankDay(data.days.length));
+        renderAll(data.days.length - 1); save(); toast("已新增一天");
+      }
+      function dayAction(action,index) {
+        if (action === "delete") {
+          remember();
+          const startDate = data.days[0]?.date;
+          data.days.splice(index,1);
+          if (data.days.length && startDate) syncDates(0,startDate);
+          renderAll(); save(); toast("已删除该日行程"); return;
+        }
+      }
+      function clearDragVisuals() {
+        document.querySelectorAll(".day-card.dragging,.day-card.drag-over").forEach(card => card.classList.remove("dragging","drag-over"));
+      }
+      function endDrag(cancelled = false) {
+        clearTimeout(dragState.timer);
+        if (dragState.active && !cancelled && dragState.source !== dragState.target && dragState.target >= 0) {
+          remember();
+          const startDate = data.days[0]?.date;
+          const [moved] = data.days.splice(dragState.source,1);
+          data.days.splice(dragState.target,0,moved);
+          if (startDate) syncDates(0,startDate);
+          dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
+          suppressDragClickUntil = Date.now() + 400;
+          renderAll(); save(); toast("已调整行程顺序");
+          return;
+        }
+        if (dragState.active) suppressDragClickUntil = Date.now() + 400;
+        clearDragVisuals();
+        dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
+      }
+      $("#titleInput").addEventListener("input", e => { remember(); data.title = e.target.value; renderPreview(); save(); });
+      $("#highlightsInput").addEventListener("input", e => { remember(); data.highlights = e.target.value; renderPreview(); save(); });
+      $("#standardsInput").addEventListener("input", e => { remember(); data.standards = lines(e.target.value); renderPreview(); save(); });
+      $("#notesInput").addEventListener("input", e => { remember(); data.notes = lines(e.target.value); renderPreview(); save(); });
+      $("#daysEditor").addEventListener("input", e => {
+        const index = Number(e.target.dataset.index), field = e.target.dataset.field;
+        if (!Number.isInteger(index) || !field || !data.days[index]) return;
+        remember();
+        data.days[index][field] = e.target.value;
+        if (field === "date") {
+          syncDates(index,e.target.value);
+          renderAll(index);
+          save();
+          toast(e.target.value ? "全部日期和星期已自动调整" : "全部日期和星期已清除");
+          return;
+        }
+        const details = e.target.closest("details");
+        if (field === "route") details.querySelector("strong").textContent = e.target.value || "未填写路线";
+        renderPreview(); save();
+      });
+      $("#daysEditor").addEventListener("click", e => {
+        if (Date.now() < suppressDragClickUntil) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        const summaryDelete = e.target.closest(".summary-delete");
+        if (summaryDelete) {
+          e.preventDefault();
+          e.stopPropagation();
+          dayAction("delete",Number(summaryDelete.dataset.index));
+          return;
+        }
+        const calendarTrigger = e.target.closest("[data-calendar-index]");
+        if (calendarTrigger) {
+          openCalendar(Number(calendarTrigger.dataset.calendarIndex),calendarTrigger);
+          return;
+        }
+        const button = e.target.closest("[data-action]");
+        if (button) dayAction(button.dataset.action,Number(button.dataset.index));
+      });
+      $("#daysEditor").addEventListener("pointerdown", e => {
+        const summary = e.target.closest(".day-card summary");
+        if (!summary || e.target.closest("button")) return;
+        const card = summary.closest(".day-card");
+        const cards = [...document.querySelectorAll(".day-card")];
+        dragState = { timer:null, active:false, source:cards.indexOf(card), target:cards.indexOf(card), pointerId:e.pointerId };
+        dragState.timer = setTimeout(() => {
+          dragState.active = true;
+          card.classList.add("dragging");
+          summary.setPointerCapture?.(e.pointerId);
+          toast("拖动到目标位置后松开");
+        },450);
+      });
+      $("#daysEditor").addEventListener("pointermove", e => {
+        if (!dragState.active || e.pointerId !== dragState.pointerId) return;
+        e.preventDefault();
+        const targetCard = document.elementFromPoint(e.clientX,e.clientY)?.closest(".day-card");
+        if (!targetCard) return;
+        const cards = [...document.querySelectorAll(".day-card")];
+        const target = cards.indexOf(targetCard);
+        if (target < 0) return;
+        dragState.target = target;
+        cards.forEach(card => card.classList.toggle("drag-over",card === targetCard && !card.classList.contains("dragging")));
+      });
+      $("#daysEditor").addEventListener("pointerup", e => {
+        if (e.pointerId === dragState.pointerId) endDrag();
+      });
+      $("#daysEditor").addEventListener("pointercancel", e => {
+        if (e.pointerId === dragState.pointerId) endDrag(true);
+      });
+      $("#calendarPopover").addEventListener("click", e => {
+        e.stopPropagation();
+        const dayButton = e.target.closest("[data-calendar-day]");
+        if (dayButton) {
+          calendarState.selected = parseDate(dayButton.dataset.calendarDay);
+          calendarState.view = new Date(calendarState.selected.getFullYear(),calendarState.selected.getMonth(),1);
+          renderCalendar();
+          return;
+        }
+        const action = e.target.closest("[data-calendar-action]")?.dataset.calendarAction;
+        if (!action) return;
+        if (action === "prev" || action === "next") {
+          calendarState.view.setMonth(calendarState.view.getMonth() + (action === "prev" ? -1 : 1));
+          renderCalendar();
+        } else if (action === "today") {
+          calendarState.selected = new Date();
+          calendarState.view = new Date(calendarState.selected.getFullYear(),calendarState.selected.getMonth(),1);
+          renderCalendar();
+        } else if (action === "clear") commitCalendar("");
+        else if (action === "confirm" && calendarState.selected) commitCalendar(toIso(calendarState.selected));
+      });
+      document.addEventListener("click", e => {
+        if (!$("#calendarPopover").hidden && !e.target.closest("#calendarPopover") && !e.target.closest("[data-calendar-index]")) closeCalendar();
+        if (!$("#taskMenu").hidden && !e.target.closest(".task-switcher")) closeTaskMenu();
+        if (!$("#exportMenu").hidden && !e.target.closest(".export-switcher")) {
+          $("#exportMenu").hidden = true;
+          $("#exportTrigger").setAttribute("aria-expanded","false");
+        }
+      });
+      document.addEventListener("keydown",e => {
+        if (e.key === "Escape" && !$("#importModal").hidden) closeImportModal();
+        if (e.key === "Escape" && !$("#apiModal").hidden) closeApiModal();
+      });
+      $("#taskTrigger").addEventListener("click",() => {
+        $("#taskMenu").hidden = !$("#taskMenu").hidden;
+        if (!$("#taskMenu").hidden) renderTaskMenu();
+      });
+      $("#taskList").addEventListener("click",e => {
+        const select = e.target.closest("[data-task-id]");
+        if (select) { switchTask(select.dataset.taskId); return; }
+        const remove = e.target.closest("[data-delete-task]");
+        if (remove) deleteTask(remove.dataset.deleteTask);
+      });
+      $("#newBlankTaskBtn").addEventListener("click",() => createTask("blank"));
+      $("#duplicateTaskBtn").addEventListener("click",() => createTask("duplicate"));
+      $("#importReferenceBtn").addEventListener("click",openImportModal);
+      $("#deepseekSettingsBtn").addEventListener("click",openApiModal);
+      $("#backupTasksBtn").addEventListener("click",backupTasks);
+      $("#restoreTasksBtn").addEventListener("click",() => $("#restoreTasksInput").click());
+      $("#restoreTasksInput").addEventListener("change",e => {
+        const file = e.target.files?.[0];
+        if (file) restoreTasks(file);
+        e.target.value = "";
+      });
+      $("#closeImportBtn").addEventListener("click",closeImportModal);
+      $("#cancelImportBtn").addEventListener("click",closeImportModal);
+      $("#startImportBtn").addEventListener("click",startReferenceImport);
+      $("#confirmImportBtn").addEventListener("click",confirmReferenceImport);
+      $("#importModal").addEventListener("click",e => {
+        if (e.target === $("#importModal")) closeImportModal();
+      });
+      $("#closeApiBtn").addEventListener("click",closeApiModal);
+      $("#apiModal").addEventListener("click",e => {
+        if (e.target === $("#apiModal")) closeApiModal();
+      });
+      $("#saveDeepseekBtn").addEventListener("click",saveDeepseekFromForm);
+      $("#testDeepseekBtn").addEventListener("click",testDeepseekFromForm);
+      $("#refreshBalanceBtn").addEventListener("click",refreshBalanceFromForm);
+      $("#clearDeepseekBtn").addEventListener("click",clearDeepseekBinding);
+      $("#undoBtn").addEventListener("click",undo);
+      $("#addDayBottom").addEventListener("click",addDay);
+      $("#exportTrigger").addEventListener("click",() => {
+        const open = $("#exportMenu").hidden;
+        $("#exportMenu").hidden = !open;
+        $("#exportTrigger").setAttribute("aria-expanded",String(open));
+      });
+      $("#exportWordBtn").addEventListener("click",() => {
+        $("#exportMenu").hidden = true;
+        $("#exportTrigger").setAttribute("aria-expanded","false");
+        exportWord();
+      });
+      $("#exportPdfBtn").addEventListener("click",() => {
+        $("#exportMenu").hidden = true;
+        $("#exportTrigger").setAttribute("aria-expanded","false");
+        document.title = data.title || "客户版行程";
+        window.print();
+      });
+      $("#resetBtn").addEventListener("click",() => {
+        if (!confirm("恢复保存的示例会覆盖当前修改，确定继续吗？")) return;
+        remember();
+        data = clone(savedExample()); renderAll(); save(); toast("已恢复保存的示例");
+      });
+      document.querySelectorAll(".mobile-tab").forEach(button => button.addEventListener("click",() => {
+        document.body.classList.toggle("preview-mode",button.dataset.mode === "preview");
+        document.querySelectorAll(".mobile-tab").forEach(tab => tab.classList.toggle("active",tab === button));
+        if (button.dataset.mode === "preview") window.scrollTo({top:0,behavior:"smooth"});
+      }));
+      renderAll();
+      renderTaskMenu();
+      requestAnimationFrame(() => {
+        captureCurrentSizes();
+        captureCurrentAsExample();
+        save();
+      });
+      updateUndoButton();
+    })();
+  </script>
+</body>
+</html>
