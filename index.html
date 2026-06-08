@@ -75,7 +75,7 @@
     .top-actions { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
     .export-switcher { position: relative; }
     .export-menu {
-      position: absolute; top: calc(100% + 8px); right: 0; z-index: 70; width: 160px;
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 70; width: 220px;
       padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
     }
     .export-menu[hidden] { display: none; }
@@ -284,6 +284,25 @@
     .review-day strong { margin-right: 8px; color: var(--primary); }
     .review-warning { color: #9a5b00; }
     .api-card { display: grid; gap: 12px; }
+    .letterhead-modal { width: min(900px,100%); }
+    .letterhead-layout { display: grid; grid-template-columns: minmax(260px,.8fr) minmax(300px,1.2fr); gap: 20px; }
+    .letterhead-preview-wrap { padding: 14px; display: grid; place-items: center; background: var(--soft); border-radius: 14px; }
+    .letterhead-preview {
+      position: relative; width: min(100%,330px); aspect-ratio: 210 / 297; overflow: hidden;
+      background: #fff center / cover no-repeat; border: 1px solid var(--line); box-shadow: var(--shadow);
+    }
+    .letterhead-safe-area {
+      position: absolute; border: 2px dashed rgba(255,56,92,.82); background: rgba(255,56,92,.05);
+      top: var(--lh-top); right: var(--lh-right); bottom: var(--lh-bottom); left: var(--lh-left);
+    }
+    .letterhead-empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+    .letterhead-controls { display: grid; align-content: start; gap: 14px; }
+    .letterhead-file-name { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+    .letterhead-margin-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+    .letterhead-margin-grid .field { margin: 0; }
+    .letterhead-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .letterhead-status { padding: 11px 12px; color: var(--muted); background: var(--soft); border-radius: 10px; font-size: 12px; white-space: pre-wrap; }
+    .letterhead-page-bg { display: none; }
     .api-status {
       padding: 12px; display: grid; gap: 5px; color: var(--muted); background: var(--soft); border-radius: 12px;
     }
@@ -311,6 +330,7 @@
       body.preview-mode .editor-panel { display: none; }
       body.preview-mode .preview-panel { display: block; }
       .preview-shell { min-height: 0; padding: 28px 22px; border-radius: 16px; }
+      .letterhead-layout { grid-template-columns: 1fr; }
     }
     @media (hover: none) {
       .summary-delete { opacity: 1; visibility: visible; pointer-events: auto; }
@@ -350,6 +370,12 @@
       .preview-day { break-inside: avoid; margin-bottom: 14px; padding-bottom: 14px; }
       .preview-day-label, .info-list li::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .info-section { break-inside: avoid; margin-top: 20px; padding-top: 15px; }
+      body.print-with-letterhead .letterhead-page-bg {
+        display: block; position: fixed; inset: 0; z-index: -1;
+        background: var(--lh-image) center top / 210mm 297mm no-repeat;
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+      }
+      body.print-with-letterhead .preview-panel, body.print-with-letterhead .preview-shell { background: transparent; }
     }
   </style>
 </head>
@@ -370,7 +396,7 @@
           <button class="btn" id="newBlankTaskBtn" type="button">＋ 空白线路</button>
           <button class="btn" id="duplicateTaskBtn" type="button">复制当前</button>
           <button class="btn" id="importReferenceBtn" type="button">上传参考线路</button>
-          <button class="btn" id="deepseekSettingsBtn" type="button">DeepSeek 设置</button>
+          <button class="btn" id="letterheadSettingsBtn" type="button">抬头纸设置</button>
           <button class="btn" id="backupTasksBtn" type="button">备份任务库</button>
           <button class="btn" id="restoreTasksBtn" type="button">恢复任务库</button>
         </div>
@@ -379,11 +405,14 @@
     <div class="top-actions">
       <button class="btn" id="undoBtn" type="button" disabled>↶ 撤销</button>
       <button class="btn reset-btn" id="resetBtn" type="button" title="恢复最新版示例"><span class="reset-label">恢复示例</span><span aria-hidden="true">↺</span></button>
+      <button class="btn" id="deepseekSettingsBtn" type="button">API 设置</button>
       <div class="export-switcher">
         <button class="btn btn-primary" id="exportTrigger" type="button" aria-expanded="false"><span aria-hidden="true">⇩</span> 导出 <b aria-hidden="true">⌄</b></button>
         <div class="export-menu" id="exportMenu" hidden>
-          <button class="btn" id="exportWordBtn" type="button">导出 Word</button>
-          <button class="btn" id="exportPdfBtn" type="button">导出 PDF</button>
+          <button class="btn" id="exportWordWithBgBtn" type="button">Word（带抬头纸）</button>
+          <button class="btn" id="exportWordPlainBtn" type="button">Word（不带抬头纸）</button>
+          <button class="btn" id="exportPdfWithBgBtn" type="button">PDF（带抬头纸）</button>
+          <button class="btn" id="exportPdfPlainBtn" type="button">PDF（不带抬头纸）</button>
         </div>
       </div>
     </div>
@@ -437,6 +466,7 @@
       <article class="preview-shell" id="preview"></article>
     </section>
   </main>
+  <div class="letterhead-page-bg" aria-hidden="true"></div>
   <div class="toast" id="toast" role="status"></div>
   <div class="calendar-popover" id="calendarPopover" hidden></div>
   <input id="restoreTasksInput" type="file" accept="application/json,.json" hidden>
@@ -490,6 +520,41 @@
       </div>
     </section>
   </div>
+  <div class="modal-backdrop" id="letterheadModal" hidden>
+    <section class="import-modal letterhead-modal" role="dialog" aria-modal="true" aria-labelledby="letterheadModalTitle">
+      <div class="modal-head">
+        <h2 id="letterheadModalTitle">抬头纸设置</h2>
+        <button class="modal-close" id="closeLetterheadBtn" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body letterhead-layout">
+        <div class="letterhead-preview-wrap">
+          <div class="letterhead-preview" id="letterheadPreview">
+            <div class="letterhead-empty" id="letterheadEmpty">尚未上传抬头纸</div>
+            <div class="letterhead-safe-area" id="letterheadSafeArea" hidden></div>
+          </div>
+        </div>
+        <div class="letterhead-controls">
+          <p class="import-note"><strong>使用说明：</strong>支持 PNG、JPG。上传后会自动识别页眉、页脚及侧边装饰，并给出正文页边距；红色虚线框内为正文区域。</p>
+          <label class="field"><span>抬头纸图片</span><input id="letterheadFileInput" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"></label>
+          <div class="letterhead-file-name" id="letterheadFileName">未上传</div>
+          <div class="letterhead-margin-grid">
+            <label class="field"><span>上边距（毫米）</span><input type="number" min="8" max="100" step="1" data-letterhead-margin="top"></label>
+            <label class="field"><span>下边距（毫米）</span><input type="number" min="8" max="100" step="1" data-letterhead-margin="bottom"></label>
+            <label class="field"><span>左边距（毫米）</span><input type="number" min="8" max="70" step="1" data-letterhead-margin="left"></label>
+            <label class="field"><span>右边距（毫米）</span><input type="number" min="8" max="70" step="1" data-letterhead-margin="right"></label>
+          </div>
+          <div class="letterhead-actions">
+            <button class="btn" id="detectLetterheadBtn" type="button">重新自动识别</button>
+            <button class="btn" id="removeLetterheadBtn" type="button">删除抬头纸</button>
+          </div>
+          <div class="letterhead-status" id="letterheadStatus">上传后将自动识别页边距。</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveLetterheadBtn" type="button">保存设置</button>
+      </div>
+    </section>
+  </div>
   <div class="modal-backdrop" id="confirmModal" hidden>
     <section class="import-modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
       <div class="modal-head">
@@ -507,12 +572,15 @@
   </div>
 
   <script>
-    (() => {
+    (async () => {
       "use strict";
       const STORAGE_KEY = "trip-plan-single-file-v1";
       const SAVED_EXAMPLE_KEY = "trip-plan-saved-example-v1";
       const LIBRARY_KEY = "trip-plan-task-library-v1";
       const DEEPSEEK_KEY = "trip-plan-deepseek-settings-v1";
+      const LETTERHEAD_KEY = "trip-plan-letterhead-settings-v1";
+      const LETTERHEAD_ASSET_KEY = "global-letterhead";
+      const PLAIN_MARGIN = 12;
       const example = {
         title: "重庆、成都双飞6日游",
         highlights: "",
@@ -564,6 +632,10 @@
       let importState = {busy:false,file:null,result:null,controller:null};
       let confirmResolver = null;
       let deepseekSettings = loadDeepseekSettings();
+      let letterheadSettings = loadLetterheadSettings();
+      let letterheadDraft = clone(letterheadSettings);
+      let letterheadImageUrl = "";
+      let letterheadBlob = null;
       const importSchema = {
         type:"object", additionalProperties:false,
         properties:{
@@ -598,6 +670,142 @@
       }
       function maskedKey(value) {
         return value ? `${value.slice(0,6)}••••${value.slice(-4)}` : "未绑定";
+      }
+      function loadLetterheadSettings() {
+        const fallback = {name:"",width:0,height:0,margins:{top:25,right:15,bottom:20,left:15},warning:""};
+        try {
+          const saved = JSON.parse(localStorage.getItem(LETTERHEAD_KEY));
+          if (saved?.margins) return {...fallback,...saved,margins:{...fallback.margins,...saved.margins}};
+        } catch (_) {}
+        return fallback;
+      }
+      function saveLetterheadSettings() {
+        localStorage.setItem(LETTERHEAD_KEY,JSON.stringify(letterheadSettings));
+      }
+      function openAssetDb() {
+        return new Promise((resolve,reject) => {
+          const request = indexedDB.open("trip-plan-assets",1);
+          request.onupgradeneeded = () => request.result.createObjectStore("assets");
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+      async function readLetterheadAsset() {
+        const db = await openAssetDb();
+        return new Promise((resolve,reject) => {
+          const request = db.transaction("assets").objectStore("assets").get(LETTERHEAD_ASSET_KEY);
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => reject(request.error);
+        });
+      }
+      async function writeLetterheadAsset(blob) {
+        const db = await openAssetDb();
+        return new Promise((resolve,reject) => {
+          const request = db.transaction("assets","readwrite").objectStore("assets").put(blob,LETTERHEAD_ASSET_KEY);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+      async function deleteLetterheadAsset() {
+        const db = await openAssetDb();
+        return new Promise((resolve,reject) => {
+          const request = db.transaction("assets","readwrite").objectStore("assets").delete(LETTERHEAD_ASSET_KEY);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+      function blobToDataUrl(blob) {
+        return new Promise((resolve,reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(blob);
+        });
+      }
+      function clampMargin(side,value) {
+        const max = side === "top" || side === "bottom" ? 100 : 70;
+        return Math.max(8,Math.min(max,Math.round(Number(value) || PLAIN_MARGIN)));
+      }
+      function safeMargins(value = letterheadSettings.margins) {
+        return {
+          top:clampMargin("top",value.top), right:clampMargin("right",value.right),
+          bottom:clampMargin("bottom",value.bottom), left:clampMargin("left",value.left)
+        };
+      }
+      async function imageFromBlob(blob) {
+        const url = URL.createObjectURL(blob);
+        try {
+          const image = new Image();
+          await new Promise((resolve,reject) => {
+            image.onload = resolve; image.onerror = () => reject(new Error("无法读取图片，请重新选择 PNG 或 JPG。")); image.src = url;
+          });
+          return image;
+        } finally {
+          setTimeout(() => URL.revokeObjectURL(url),0);
+        }
+      }
+      async function detectLetterheadMargins(blob) {
+        const image = await imageFromBlob(blob);
+        const width = 420, height = 594;
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const context = canvas.getContext("2d",{willReadFrequently:true});
+        context.fillStyle = "#fff"; context.fillRect(0,0,width,height);
+        const scale = Math.max(width / image.naturalWidth,height / image.naturalHeight);
+        const drawWidth = image.naturalWidth * scale, drawHeight = image.naturalHeight * scale;
+        context.drawImage(image,(width - drawWidth) / 2,(height - drawHeight) / 2,drawWidth,drawHeight);
+        const pixels = context.getImageData(0,0,width,height).data;
+        const rowCounts = new Array(height).fill(0), colCounts = new Array(width).fill(0);
+        let ink = 0;
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const at = (y * width + x) * 4;
+            const colored = pixels[at + 3] > 30 && (pixels[at] < 242 || pixels[at + 1] < 242 || pixels[at + 2] < 242);
+            if (colored) { rowCounts[y]++; colCounts[x]++; ink++; }
+          }
+        }
+        const coverage = ink / (width * height);
+        const rowActive = count => count >= Math.max(3,width * .006);
+        const colActive = count => count >= Math.max(5,height * .018);
+        const lastActive = (counts,start,end,active) => {
+          let found = -1;
+          for (let i = start; i <= end; i++) if (active(counts[i])) found = i;
+          return found;
+        };
+        const firstActive = (counts,start,end,active) => {
+          for (let i = start; i <= end; i++) if (active(counts[i])) return i;
+          return -1;
+        };
+        let warning = "";
+        let margins;
+        if (coverage > .34) {
+          margins = {top:25,right:15,bottom:20,left:15};
+          warning = "图片包含大面积底色或水印，无法可靠识别正文区域，已采用建议值，请手动微调。";
+        } else {
+          const topEdge = lastActive(rowCounts,0,Math.round(height * .38),rowActive);
+          const bottomEdge = firstActive(rowCounts,Math.round(height * .62),height - 1,rowActive);
+          const leftEdge = lastActive(colCounts,0,Math.round(width * .25),colActive);
+          const rightEdge = firstActive(colCounts,Math.round(width * .75),width - 1,colActive);
+          margins = {
+            top:topEdge >= 0 ? topEdge / height * 297 + 5 : 15,
+            bottom:bottomEdge >= 0 ? (height - bottomEdge) / height * 297 + 5 : 15,
+            left:leftEdge >= 0 ? leftEdge / width * 210 + 4 : 15,
+            right:rightEdge >= 0 ? (width - rightEdge) / width * 210 + 4 : 15
+          };
+        }
+        const ratio = image.naturalWidth / image.naturalHeight;
+        if (Math.abs(ratio - 210 / 297) > .05) {
+          warning = `${warning ? `${warning}\n` : ""}图片不是 A4 比例，导出时会居中铺满并裁切超出部分。`;
+        }
+        return {margins:safeMargins(margins),width:image.naturalWidth,height:image.naturalHeight,warning};
+      }
+      async function loadLetterheadImage() {
+        try {
+          letterheadBlob = await readLetterheadAsset();
+          letterheadImageUrl = letterheadBlob ? await blobToDataUrl(letterheadBlob) : "";
+        } catch (_) {
+          letterheadBlob = null; letterheadImageUrl = "";
+        }
       }
       function deepseekHeaders(key = deepseekSettings.apiKey) {
         return {"Content-Type":"application/json",Authorization:`Bearer ${key}`};
@@ -794,7 +1002,7 @@
         $("#referenceTextInput").value = "";
         $("#importProviderHint").textContent = deepseekSettings.apiKey
           ? `当前使用 DeepSeek：${deepseekSettings.model}，密钥 ${maskedKey(deepseekSettings.apiKey)}`
-          : "尚未绑定 DeepSeek API，请先在任务菜单中打开“DeepSeek 设置”。";
+          : "尚未绑定 DeepSeek API，请先打开顶部的“API 设置”。";
         $("#importSetup").hidden = false;
         $("#importStatus").hidden = true;
         $("#importReview").hidden = true;
@@ -840,6 +1048,87 @@
         setTimeout(() => $("#deepseekKeyInput").focus(),0);
       }
       function closeApiModal() { $("#apiModal").hidden = true; }
+      function renderLetterheadSafeArea() {
+        const margins = safeMargins(letterheadDraft.margins);
+        const preview = $("#letterheadPreview");
+        preview.style.setProperty("--lh-top",`${margins.top / 297 * 100}%`);
+        preview.style.setProperty("--lh-right",`${margins.right / 210 * 100}%`);
+        preview.style.setProperty("--lh-bottom",`${margins.bottom / 297 * 100}%`);
+        preview.style.setProperty("--lh-left",`${margins.left / 210 * 100}%`);
+      }
+      function renderLetterheadModal() {
+        const margins = safeMargins(letterheadDraft.margins);
+        const preview = $("#letterheadPreview");
+        preview.style.backgroundImage = letterheadImageUrl ? `url("${letterheadImageUrl}")` : "none";
+        renderLetterheadSafeArea();
+        $("#letterheadEmpty").hidden = Boolean(letterheadImageUrl);
+        $("#letterheadSafeArea").hidden = !letterheadImageUrl;
+        $("#letterheadFileName").textContent = letterheadDraft.name || "未上传";
+        document.querySelectorAll("[data-letterhead-margin]").forEach(input => {
+          input.value = margins[input.dataset.letterheadMargin];
+          input.disabled = !letterheadImageUrl;
+        });
+        $("#detectLetterheadBtn").disabled = !letterheadBlob;
+        $("#removeLetterheadBtn").disabled = !letterheadBlob;
+        $("#letterheadStatus").textContent = letterheadDraft.warning || (letterheadImageUrl ? "已识别正文区域，可手动调整四边页边距。" : "上传后将自动识别页边距。");
+      }
+      function openLetterheadModal() {
+        closeTaskMenu();
+        letterheadDraft = clone(letterheadSettings);
+        $("#letterheadFileInput").value = "";
+        renderLetterheadModal();
+        $("#letterheadModal").hidden = false;
+      }
+      function closeLetterheadModal() { $("#letterheadModal").hidden = true; }
+      async function processLetterheadFile(file) {
+        if (!file || !["image/png","image/jpeg"].includes(file.type)) return toast("仅支持 PNG、JPG 抬头纸");
+        if (file.size > 15 * 1024 * 1024) return toast("图片超过 15MB，请压缩后重试");
+        $("#letterheadStatus").textContent = "正在分析抬头纸并识别正文区域…";
+        try {
+          const detected = await detectLetterheadMargins(file);
+          await writeLetterheadAsset(file);
+          letterheadBlob = file;
+          letterheadImageUrl = await blobToDataUrl(file);
+          letterheadDraft = {name:file.name,width:detected.width,height:detected.height,margins:detected.margins,warning:detected.warning};
+          letterheadSettings = clone(letterheadDraft);
+          saveLetterheadSettings();
+          renderLetterheadModal();
+        } catch (error) {
+          $("#letterheadStatus").textContent = error.message || "图片分析失败，请重新选择。";
+        }
+      }
+      async function redetectLetterhead() {
+        if (!letterheadBlob) return;
+        $("#letterheadStatus").textContent = "正在重新识别正文区域…";
+        try {
+          const detected = await detectLetterheadMargins(letterheadBlob);
+          letterheadDraft = {...letterheadDraft,...detected};
+          renderLetterheadModal();
+        } catch (error) {
+          $("#letterheadStatus").textContent = error.message || "识别失败，请手动调整页边距。";
+        }
+      }
+      async function removeLetterhead() {
+        if (!letterheadBlob || !await askConfirmation("删除后，所有线路将不再显示这张抬头纸。","确定删除全局抬头纸吗？")) return;
+        await deleteLetterheadAsset();
+        letterheadBlob = null; letterheadImageUrl = "";
+        letterheadDraft = {name:"",width:0,height:0,margins:{top:25,right:15,bottom:20,left:15},warning:""};
+        letterheadSettings = clone(letterheadDraft);
+        saveLetterheadSettings();
+        renderLetterheadModal();
+        toast("抬头纸已删除");
+      }
+      function saveLetterheadFromModal() {
+        if (letterheadImageUrl) {
+          document.querySelectorAll("[data-letterhead-margin]").forEach(input => {
+            letterheadDraft.margins[input.dataset.letterheadMargin] = clampMargin(input.dataset.letterheadMargin,input.value);
+          });
+        }
+        letterheadSettings = clone(letterheadDraft);
+        saveLetterheadSettings();
+        closeLetterheadModal();
+        toast(letterheadImageUrl ? "抬头纸设置已保存" : "当前未使用抬头纸");
+      }
       function closeConfirmModal(accepted = false) {
         $("#confirmModal").hidden = true;
         const resolve = confirmResolver;
@@ -1110,7 +1399,7 @@ ${text}`;
       async function startReferenceImport() {
         const file = $("#referenceFileInput").files?.[0];
         const pasted = $("#referenceTextInput").value || "";
-        if (!deepseekSettings.apiKey) return setImportError("请先在“DeepSeek 设置”中保存 API 密钥。");
+        if (!deepseekSettings.apiKey) return setImportError("请先在“API 设置”中保存 API 密钥。");
         importState.file = file;
         try {
           setImportBusy("正在提取参考线路文字…");
@@ -1402,10 +1691,21 @@ ${text}`;
       function safeFilename(value) {
         return String(value || "客户版行程").replace(/[\\/:*?"<>|]/g,"_").trim() || "客户版行程";
       }
-      function exportWord() {
+      function ensureLetterhead() {
+        if (letterheadImageUrl) return true;
+        toast("请先在任务菜单中上传抬头纸");
+        openLetterheadModal();
+        return false;
+      }
+      function exportWord(withBackground = false) {
+        if (withBackground && !ensureLetterhead()) return;
         const previewHtml = $("#preview").innerHTML;
+        const margins = withBackground ? safeMargins() : {top:PLAIN_MARGIN,right:PLAIN_MARGIN,bottom:PLAIN_MARGIN,left:PLAIN_MARGIN};
+        const background = withBackground ? `background-image:url('${letterheadImageUrl}');background-position:center top;background-size:210mm 297mm;background-repeat:repeat-y;` : "";
         const style = `
-          body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#222;line-height:1.6;margin:32px}
+          @page Section1{size:210mm 297mm;margin:${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm}
+          body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#222;line-height:1.6;margin:0;${background}}
+          .word-content{page:Section1}
           h2{text-align:center;font-size:24px}.preview-kicker{text-align:center;color:#ff385c;margin-bottom:24px}
           .preview-highlights{padding:12px 16px;background:#f7f7f7;margin-bottom:22px}.preview-highlights h3{margin:0 0 6px}
           .preview-day{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #ddd}.preview-day-label{font-weight:bold;color:#ff385c}
@@ -1414,7 +1714,7 @@ ${text}`;
           .meal-row{display:grid;grid-template-columns:52px repeat(3,1fr);gap:8px}.lodging-row{display:grid;grid-template-columns:52px 1fr;margin-top:6px}
           .info-section{margin-top:24px}.info-list{padding-left:20px}
         `;
-        const word = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(data.title || "客户版行程")}</title><style>${style}</style></head><body>${previewHtml}</body></html>`;
+        const word = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(data.title || "客户版行程")}</title><style>${style}</style></head><body><div class="word-content">${previewHtml}</div></body></html>`;
         const blob = new Blob(["\ufeff",word],{type:"application/msword"});
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -1424,7 +1724,28 @@ ${text}`;
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url),1000);
-        toast("Word 文件已导出");
+        toast(withBackground ? "带抬头纸 Word 已导出；打印背景受 Word 设置影响" : "无抬头纸 Word 已导出");
+      }
+      function exportPdf(withBackground = false) {
+        if (withBackground && !ensureLetterhead()) return;
+        const margins = withBackground ? safeMargins() : {top:PLAIN_MARGIN,right:PLAIN_MARGIN,bottom:PLAIN_MARGIN,left:PLAIN_MARGIN};
+        let pageStyle = $("#printPageStyle");
+        if (!pageStyle) {
+          pageStyle = document.createElement("style");
+          pageStyle.id = "printPageStyle";
+          document.head.appendChild(pageStyle);
+        }
+        pageStyle.textContent = `@media print{@page{size:A4;margin:${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm}}`;
+        document.body.style.setProperty("--lh-image",withBackground ? `url("${letterheadImageUrl}")` : "none");
+        document.body.classList.toggle("print-with-letterhead",withBackground);
+        document.title = data.title || "客户版行程";
+        const cleanup = () => {
+          document.body.classList.remove("print-with-letterhead");
+          document.body.style.removeProperty("--lh-image");
+          window.removeEventListener("afterprint",cleanup);
+        };
+        window.addEventListener("afterprint",cleanup);
+        window.print();
       }
       function renderAll(openIndex = null) { renderEditor(openIndex); renderPreview(); }
       function addDay() {
@@ -1564,6 +1885,7 @@ ${text}`;
       document.addEventListener("keydown",e => {
         if (e.key === "Escape" && !$("#importModal").hidden) closeImportModal();
         if (e.key === "Escape" && !$("#apiModal").hidden) closeApiModal();
+        if (e.key === "Escape" && !$("#letterheadModal").hidden) closeLetterheadModal();
         if (e.key === "Escape" && !$("#confirmModal").hidden) closeConfirmModal(false);
       });
       $("#taskTrigger").addEventListener("click",() => {
@@ -1580,6 +1902,7 @@ ${text}`;
       $("#duplicateTaskBtn").addEventListener("click",() => createTask("duplicate"));
       $("#importReferenceBtn").addEventListener("click",openImportModal);
       $("#deepseekSettingsBtn").addEventListener("click",openApiModal);
+      $("#letterheadSettingsBtn").addEventListener("click",openLetterheadModal);
       $("#backupTasksBtn").addEventListener("click",backupTasks);
       $("#restoreTasksBtn").addEventListener("click",() => $("#restoreTasksInput").click());
       $("#restoreTasksInput").addEventListener("change",e => {
@@ -1598,6 +1921,33 @@ ${text}`;
       $("#apiModal").addEventListener("click",e => {
         if (e.target === $("#apiModal")) closeApiModal();
       });
+      $("#closeLetterheadBtn").addEventListener("click",closeLetterheadModal);
+      $("#letterheadModal").addEventListener("click",e => {
+        if (e.target === $("#letterheadModal")) closeLetterheadModal();
+      });
+      $("#letterheadFileInput").addEventListener("change",e => {
+        const file = e.target.files?.[0];
+        if (file) processLetterheadFile(file);
+      });
+      document.querySelectorAll("[data-letterhead-margin]").forEach(input => {
+        input.addEventListener("input",e => {
+          if (e.target.value === "") return;
+          const value = Number(e.target.value);
+          if (!Number.isFinite(value)) return;
+          letterheadDraft.margins[e.target.dataset.letterheadMargin] = value;
+          renderLetterheadSafeArea();
+        });
+        input.addEventListener("blur",e => {
+          const side = e.target.dataset.letterheadMargin;
+          const value = clampMargin(side,e.target.value);
+          letterheadDraft.margins[side] = value;
+          e.target.value = value;
+          renderLetterheadSafeArea();
+        });
+      });
+      $("#detectLetterheadBtn").addEventListener("click",redetectLetterhead);
+      $("#removeLetterheadBtn").addEventListener("click",removeLetterhead);
+      $("#saveLetterheadBtn").addEventListener("click",saveLetterheadFromModal);
       $("#closeConfirmBtn").addEventListener("click",() => closeConfirmModal(false));
       $("#cancelConfirmBtn").addEventListener("click",() => closeConfirmModal(false));
       $("#acceptConfirmBtn").addEventListener("click",() => closeConfirmModal(true));
@@ -1615,17 +1965,14 @@ ${text}`;
         $("#exportMenu").hidden = !open;
         $("#exportTrigger").setAttribute("aria-expanded",String(open));
       });
-      $("#exportWordBtn").addEventListener("click",() => {
+      function closeExportMenu() {
         $("#exportMenu").hidden = true;
         $("#exportTrigger").setAttribute("aria-expanded","false");
-        exportWord();
-      });
-      $("#exportPdfBtn").addEventListener("click",() => {
-        $("#exportMenu").hidden = true;
-        $("#exportTrigger").setAttribute("aria-expanded","false");
-        document.title = data.title || "客户版行程";
-        window.print();
-      });
+      }
+      $("#exportWordWithBgBtn").addEventListener("click",() => { closeExportMenu(); exportWord(true); });
+      $("#exportWordPlainBtn").addEventListener("click",() => { closeExportMenu(); exportWord(false); });
+      $("#exportPdfWithBgBtn").addEventListener("click",() => { closeExportMenu(); exportPdf(true); });
+      $("#exportPdfPlainBtn").addEventListener("click",() => { closeExportMenu(); exportPdf(false); });
       $("#resetBtn").addEventListener("click",async () => {
         if (!await askConfirmation("当前线路中的修改将被最新版示例覆盖。","确定恢复最新版示例吗？")) return;
         remember();
@@ -1636,6 +1983,7 @@ ${text}`;
         document.querySelectorAll(".mobile-tab").forEach(tab => tab.classList.toggle("active",tab === button));
         if (button.dataset.mode === "preview") window.scrollTo({top:0,behavior:"smooth"});
       }));
+      await loadLetterheadImage();
       renderAll();
       renderTaskMenu();
       requestAnimationFrame(() => {
