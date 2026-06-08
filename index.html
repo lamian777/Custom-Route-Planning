@@ -755,18 +755,17 @@
         const drawWidth = image.naturalWidth * scale, drawHeight = image.naturalHeight * scale;
         context.drawImage(image,(width - drawWidth) / 2,(height - drawHeight) / 2,drawWidth,drawHeight);
         const pixels = context.getImageData(0,0,width,height).data;
-        const rowCounts = new Array(height).fill(0), colCounts = new Array(width).fill(0);
+        const rowCounts = new Array(height).fill(0);
         let ink = 0;
         for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
             const at = (y * width + x) * 4;
             const colored = pixels[at + 3] > 30 && (pixels[at] < 242 || pixels[at + 1] < 242 || pixels[at + 2] < 242);
-            if (colored) { rowCounts[y]++; colCounts[x]++; ink++; }
+            if (colored) { rowCounts[y]++; ink++; }
           }
         }
         const coverage = ink / (width * height);
         const rowActive = count => count >= Math.max(3,width * .006);
-        const colActive = count => count >= Math.max(5,height * .018);
         const lastActive = (counts,start,end,active) => {
           let found = -1;
           for (let i = start; i <= end; i++) if (active(counts[i])) found = i;
@@ -779,18 +778,30 @@
         let warning = "";
         let margins;
         if (coverage > .34) {
-          margins = {top:25,right:15,bottom:20,left:15};
+          margins = {top:25,right:10,bottom:20,left:10};
           warning = "图片包含大面积底色或水印，无法可靠识别正文区域，已采用建议值，请手动微调。";
         } else {
           const topEdge = lastActive(rowCounts,0,Math.round(height * .38),rowActive);
           const bottomEdge = firstActive(rowCounts,Math.round(height * .62),height - 1,rowActive);
-          const leftEdge = lastActive(colCounts,0,Math.round(width * .25),colActive);
-          const rightEdge = firstActive(colCounts,Math.round(width * .75),width - 1,colActive);
+          const bodyStart = topEdge >= 0 ? topEdge + 1 : Math.round(height * .25);
+          const bodyEnd = bottomEdge >= 0 ? bottomEdge - 1 : Math.round(height * .75);
+          const bodyHeight = Math.max(1,bodyEnd - bodyStart + 1);
+          const bodyColCounts = new Array(width).fill(0);
+          for (let y = bodyStart; y <= bodyEnd; y++) {
+            for (let x = 0; x < width; x++) {
+              const at = (y * width + x) * 4;
+              const colored = pixels[at + 3] > 30 && (pixels[at] < 242 || pixels[at + 1] < 242 || pixels[at + 2] < 242);
+              if (colored) bodyColCounts[x]++;
+            }
+          }
+          const sideActive = count => count >= Math.max(5,bodyHeight * .08);
+          const leftEdge = lastActive(bodyColCounts,0,Math.round(width * .25),sideActive);
+          const rightEdge = firstActive(bodyColCounts,Math.round(width * .75),width - 1,sideActive);
           margins = {
             top:topEdge >= 0 ? topEdge / height * 297 + 5 : 15,
             bottom:bottomEdge >= 0 ? (height - bottomEdge) / height * 297 + 5 : 15,
-            left:leftEdge >= 0 ? leftEdge / width * 210 + 4 : 15,
-            right:rightEdge >= 0 ? (width - rightEdge) / width * 210 + 4 : 15
+            left:leftEdge >= 0 ? leftEdge / width * 210 + 4 : 10,
+            right:rightEdge >= 0 ? (width - rightEdge) / width * 210 + 4 : 10
           };
         }
         const ratio = image.naturalWidth / image.naturalHeight;
