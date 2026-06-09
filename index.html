@@ -115,6 +115,7 @@
     .field { display: block; margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
     .field span { display: block; margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .field .required-mark { margin-right: 3px; color: var(--primary); font-weight: 800; }
     input, textarea, select {
       width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
       outline: none; background: #fff; resize: vertical; transition: border-color .15s;
@@ -167,6 +168,16 @@
     .day-card summary::-webkit-details-marker { display: none; }
     .day-card summary::after { content: "⌄"; flex: none; color: var(--muted); font-size: 17px; }
     .day-card[open] summary::after { transform: rotate(180deg); }
+    .notice-card { margin-bottom: 12px; }
+    .notice-card summary::after { order: 3; }
+    .notice-summary { min-width: 0; }
+    .notice-summary strong, .notice-summary small { display: block; }
+    .notice-summary small { color: var(--muted); font-size: 11px; font-weight: 400; }
+    .visibility-toggle {
+      order: 2; flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 7px;
+      color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .visibility-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); }
     .summary-delete {
       flex: none; min-width: 42px; height: 32px; margin-left: auto; padding: 0 8px; display: grid; place-items: center;
       color: var(--muted); border: 0; border-radius: 8px; background: transparent; font-size: 12px; font-weight: 600;
@@ -204,6 +215,15 @@
     }
     .preview-highlights h3 { margin: 0 0 7px; color: var(--ink); font-size: 15px; }
     .preview-highlights ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+    .preview-departure-notice {
+      margin: -8px 0 28px; padding: 18px; border: 1px solid #ffd1da; border-radius: var(--radius);
+      background: #fff8fa; break-inside: avoid;
+    }
+    .notice-list { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px 18px; }
+    .notice-item { min-width: 0; display: grid; grid-template-columns: 68px 1fr; gap: 7px; }
+    .notice-item dt { color: var(--primary); font-weight: 700; }
+    .notice-item dd { margin: 0; color: var(--body); white-space: pre-wrap; }
+    .notice-item-wide { grid-column: 1 / -1; }
     .itinerary { position: relative; }
     .preview-day {
       position: relative; margin: 0 0 20px; padding: 0 0 20px 50px; border-bottom: 1px solid var(--soft-line);
@@ -352,6 +372,8 @@
       .preview-day { padding-left: 43px; }
       .preview-day-head { display: block; }
       .preview-date { margin-top: 2px; }
+      .notice-list { grid-template-columns: 1fr; }
+      .notice-item-wide { grid-column: auto; }
       .meal-row { grid-template-columns: 48px 1fr; }
       .meal-item { grid-column: 2; }
       .modal-backdrop { padding: 8px; }
@@ -464,6 +486,28 @@
             <span>每行一项</span>
             <textarea id="notesInput" rows="5"></textarea>
           </label>
+        </section>
+
+        <section class="section">
+          <details class="day-card notice-card" id="departureNoticeEditor">
+            <summary>
+              <span class="notice-summary"><strong>出团通知</strong><small>填写后可选择显示在客户版标题下方</small></span>
+              <label class="visibility-toggle" title="控制客户版是否显示出团通知">
+                <input id="departureNoticeVisible" type="checkbox">
+                <span>显示</span>
+              </label>
+            </summary>
+            <div class="day-body">
+              <div class="grid-2">
+                <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
+                <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
+              </div>
+              <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
+              <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
+              <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
+              <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
+            </div>
+          </details>
         </section>
       </div>
     </section>
@@ -588,31 +632,107 @@
       const LETTERHEAD_ASSET_KEY = "global-letterhead";
       const PLAIN_MARGIN = 12;
       const example = {
-        title: "重庆、成都双飞6日游",
-        highlights: "",
-        days: [
-          { date:"", weekday:"", route:"大连 — 重庆", morning:"大连乘机飞往重庆，抵达后导游接机；\n漫步【解放碑】商圈，自由感受都市繁华与网红打卡地；", afternoon:"游览【洪崖洞】夜景，体验吊脚楼风情与夜市美食。", remark:"", lodging:"重庆市区酒店", breakfast:"—", lunch:"集体用餐", dinner:"集体用餐", flight:"✈️ 早班机 + 🚌 BUS" },
-          { date:"", weekday:"", route:"重庆", morning:"游览【磁器口古镇】，感受巴渝民俗文化和古街美食；", afternoon:"体验【长江索道】、游览【南山一棵树观景台】，俯瞰重庆城市风光。", remark:"", lodging:"重庆市区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:"🚌 BUS" },
-          { date:"", weekday:"", route:"重庆 — 成都", morning:"驱车前往成都（约5小时），沿途欣赏川渝风光；", afternoon:"抵达后，游览【锦里古街】、【宽窄巷子】，感受巴蜀历史文化氛围。", remark:"", lodging:"成都市区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:" 🚌 BUS" },
-          { date:"", weekday:"", route:"成都 — 都江堰 — 青城山", morning:"游览世界文化遗产【都江堰景区】，体验千年水利奇迹；", afternoon:"游览道教名山【青城山】，漫步绿意竹林，感受自然仙境。", remark:"", lodging:"成都市区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:" 🚌 BUS" },
-          { date:"", weekday:"", route:"成都 — 乐山 — 峨眉山", morning:"游览【乐山大佛】，欣赏世界最大石刻佛像壮丽景观；", afternoon:"前往【峨眉山】，游报国寺等景点，体验金顶仙境风光（缆车自理）。", remark:"", lodging:"峨眉山景区酒店", breakfast:"酒店含", lunch:"集体用餐", dinner:"集体用餐", flight:" 🚌 BUS" },
-          { date:"", weekday:"", route:"峨眉山 — 成都 — 大连", morning:"自由活动；", afternoon:"前往双流机场，乘机返回大连，结束旅程。", remark:"", lodging:"—", breakfast:"酒店含", lunch:"自理", dinner:"—", flight:" 🚌 BUS + ✈️ 晚班机" }
+        "title": "重庆、成都双飞6日游",
+        "days": [
+          {
+            "date": "2025-08-01",
+            "weekday": "周五",
+            "route": "大连 — 重庆",
+            "morning": "大连乘机飞往重庆，抵达后导游接站；\n打卡【解放碑商圈】，自由感受都市繁华与网红胜地；",
+            "afternoon": "游览【洪崖洞】夜景，体验吊脚楼风情与夜市美食。",
+            "lodging": "重庆市区酒店",
+            "breakfast": "—",
+            "lunch": "集体用餐",
+            "dinner": "集体用餐",
+            "flight": "✈️ 早班机 + 🚌 BUS"
+          },
+          {
+            "date": "2025-08-02",
+            "weekday": "周六",
+            "route": "重庆",
+            "morning": "游览【磁器口古镇】，感受巴渝民俗文化和古街美食；",
+            "afternoon": "体验【长江索道】，游览【南山一棵树观景台】，俯瞰重庆城市风光。",
+            "lodging": "重庆市区酒店",
+            "breakfast": "酒店含",
+            "lunch": "集体用餐",
+            "dinner": "集体用餐",
+            "flight": "🚌 BUS"
+          },
+          {
+            "date": "2025-08-03",
+            "weekday": "周日",
+            "route": "重庆 — 成都",
+            "morning": "乘坐高铁前往成都（约2小时），沿途欣赏川渝风光；",
+            "afternoon": "抵达成都后游览【锦里古街】及【宽窄巷子】，感受巴蜀历史文化氛围。",
+            "lodging": "成都市区酒店",
+            "breakfast": "酒店含",
+            "lunch": "集体用餐",
+            "dinner": "集体用餐",
+            "flight": "🚄 高铁 + 🚌 BUS"
+          },
+          {
+            "date": "2025-08-04",
+            "weekday": "周一",
+            "route": "成都 — 都江堰 — 青城山",
+            "morning": "游览世界文化遗产【都江堰景区】，体验千年水利奇迹；",
+            "afternoon": "游览道教名山【青城山】，漫步绿意竹林，感受自然仙境。",
+            "lodging": "成都市区酒店",
+            "breakfast": "酒店含",
+            "lunch": "集体用餐",
+            "dinner": "集体用餐",
+            "flight": "🚌 BUS"
+          },
+          {
+            "date": "2025-08-05",
+            "weekday": "周二",
+            "route": "成都 — 乐⼭ — 峨眉⼭",
+            "morning": "游览【乐⼭⼤佛】，欣赏世界最⼤⽯刻佛像壮丽景观；",
+            "afternoon": "前往【峨眉⼭】，游报国寺等景点，体验⾦顶仙境⻛光（缆⻋⾃理）。",
+            "remark": "",
+            "lodging": "峨眉山景区酒店",
+            "breakfast": "酒店含",
+            "lunch": "集体用餐",
+            "dinner": "集体用餐",
+            "flight": "🚌 BUS"
+          },
+          {
+            "date": "2025-08-06",
+            "weekday": "周三",
+            "route": "成都 — 大连",
+            "morning": "自由活动；",
+            "afternoon": "前往双流机场，乘机返回大连，结束旅程。",
+            "lodging": "—",
+            "breakfast": "酒店含",
+            "lunch": "自理",
+            "dinner": "—",
+            "flight": "🚌 BUS + ✈️ 飞机"
+          }
         ],
-        standards: [
-          "航班：大连/重庆、成都/大连往返经济舱含税，请以实际出票为准；",
+        "standards": [
+          "航班：大连/重庆 成都/大连往返经济舱含税，时间及价格以出票为准；",
           "交通：当地空调旅游巴士（保证每人1正座）；",
-          "住宿：行程所列参考酒店双标间，单房差        元/人；",
-          "餐饮：5早餐（酒店含，不用不退），7正餐（餐标       元/人），详见行程安排；",
+          "住宿：行程所列酒店双标或大床（单房差      元/人）；",
+          "用餐：5早餐（酒店含，不用不退），7正餐（餐标      元/人），详见安排；",
           "导游：当地持证导游服务（不含全陪）；",
-          "景点：行程所列景点首道门票（不含景交及自费）；",
-          "保险：旅行社责任险、旅意险，最终解决权归保险公司；"
+          "景点：行程内所列项目首道门票（不含自费）；",
+          "保险：旅行社责任险、旅游意外险，最终解决权归保险公司；"
         ],
-        notes: [
-          "游客须携带有效身份证件，如忘带或遗失导致无法乘机或入住酒店，需责任自理；",
-          "游客自愿放弃住宿、餐饮、景点或自愿离团，将不予返还费用；",
-          "为保障行程顺利进行，在不减少内容前提下，导游有权在征得超半数游客同意后，根据交通及天气情况，适当调整游览顺序；",
-          "因战争/天气/政策等不可抗力因素造成的团队滞留或政策性调价产生的费用，需游客自理，我社可协助解决；"
-        ]
+        "notes": [
+          "游客须携带有效身份证件（因忘带或遗失导致无法乘机或入住酒店责任自理）；",
+          "游客自愿放弃餐食/住宿/景点或自愿离团，我社将不予返还费用；",
+          "不减少行程内容前提下，经半数以上游客同意，导游可根据实际情况调整游览顺序；",
+          "因天气/政策/战争等不可抗力因素造成的团队滞留或政策性调价产生的费用，需游客自理，我社可协助解决；"
+        ],
+        "departureNotice": {
+          "visible": false,
+          "guide": "张三 13190119100",
+          "vehicle": "渝A-99999",
+          "meeting": "2026.07.16 早08:30  \n大连机场2楼出发厅4号门内",
+          "flight": "",
+          "weather": "",
+          "notes": ""
+        },
+        "highlights": ""
       };
       const fields = [
         ["route","当天路线","例如：大连 — 重庆","input"],
@@ -621,6 +741,11 @@
         ["remark","备注","选填，默认不显示","textarea"], ["lodging","住宿","例如：重庆市区酒店","input"], ["breakfast","早餐","例如：酒店含","input"],
         ["lunch","午餐","例如：集体用餐","input"], ["dinner","晚餐","例如：自理","input"]
       ];
+      const noticeFields = [
+        ["guide","导游信息"],["vehicle","车辆信息"],["meeting","集合信息"],
+        ["flight","航班信息"],["weather","当地天气"],["notes","注意事项"]
+      ];
+      const requiredNoticeFields = new Set(["guide","vehicle","meeting"]);
       const $ = s => document.querySelector(s);
       const clone = value => JSON.parse(JSON.stringify(value));
       const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
@@ -861,6 +986,7 @@
       function blankTaskData() {
         return {
           title:"", highlights:"",
+          departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
           days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",breakfast:"",lunch:"",dinner:"",flight:""}],
           standards:clone(example.standards), notes:clone(example.notes), _heights:clone(data?._heights || {})
         };
@@ -1647,6 +1773,11 @@ ${text}`;
       }
       function renderEditor(openIndex = null) {
         $("#titleInput").value = data.title || "";
+        data.departureNotice ||= {visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""};
+        $("#departureNoticeVisible").checked = Boolean(data.departureNotice.visible);
+        document.querySelectorAll("[data-notice-field]").forEach(input => {
+          input.value = data.departureNotice[input.dataset.noticeField] || "";
+        });
         $("#highlightsInput").value = data.highlights || "";
         applyGlobalHeight("highlightsInput");
         $("#standardsInput").value = (data.standards || []).join("\n");
@@ -1674,6 +1805,15 @@ ${text}`;
       }
       function renderPreview() {
         document.title = data.title || "旅行线路定制";
+        const notice = data.departureNotice || {};
+        const departureNotice = notice.visible ? `
+          <section class="preview-departure-notice">
+            <dl class="notice-list">${noticeFields.filter(([field]) => requiredNoticeFields.has(field) || notice[field]).map(([field,label]) => `
+              <div class="notice-item ${field === "notes" ? "notice-item-wide" : ""}">
+                <dt>${label}</dt><dd>${esc(notice[field] || "待通知")}</dd>
+              </div>`).join("")}
+            </dl>
+          </section>` : "";
         const days = data.days.map((day,index) => `
           <section class="preview-day">
             <div class="preview-day-label">D${index + 1}</div>
@@ -1700,7 +1840,8 @@ ${text}`;
         const list = (title, items) => items?.length ? `<section class="info-section"><h3>${title}</h3><ul class="info-list">${items.map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : "";
         $("#preview").innerHTML = `
           <h2 class="preview-title">${esc(data.title || "未命名旅行线路")}</h2>
-          <div class="preview-kicker">参考行程</div>
+          <div class="preview-kicker">${notice.visible ? "出团通知" : "参考行程"}</div>
+          ${departureNotice}
           ${lines(data.highlights).length ? `<section class="preview-highlights"><h3>行程亮点</h3><ul>${lines(data.highlights).map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : ""}
           <div class="itinerary">${days || `<div class="empty">行程内容待添加</div>`}</div>
           ${list("接待标准",data.standards)}${list("特别说明",data.notes)}`;
@@ -1778,6 +1919,28 @@ ${text}`;
         dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
       }
       $("#titleInput").addEventListener("input", e => { remember(); data.title = e.target.value; renderPreview(); save(); });
+      $("#departureNoticeVisible").addEventListener("click", e => e.stopPropagation());
+      $("#departureNoticeVisible").addEventListener("change", e => {
+        const missing = noticeFields.filter(([field]) => requiredNoticeFields.has(field) && !String(data.departureNotice?.[field] || "").trim()).map(([,label]) => label);
+        if (e.target.checked && missing.length) {
+          e.target.checked = false;
+          toast(`请先填写${missing.join("、")}`);
+          return;
+        }
+        remember();
+        data.departureNotice ||= {};
+        data.departureNotice.visible = e.target.checked;
+        renderPreview(); save();
+        toast(e.target.checked ? "出团通知已显示" : "出团通知已隐藏");
+      });
+      $("#departureNoticeEditor").addEventListener("input", e => {
+        const field = e.target.dataset.noticeField;
+        if (!field) return;
+        remember();
+        data.departureNotice ||= {};
+        data.departureNotice[field] = e.target.value;
+        renderPreview(); save();
+      });
       $("#highlightsInput").addEventListener("input", e => { remember(); data.highlights = e.target.value; renderPreview(); save(); });
       $("#standardsInput").addEventListener("input", e => { remember(); data.standards = lines(e.target.value); renderPreview(); save(); });
       $("#notesInput").addEventListener("input", e => { remember(); data.notes = lines(e.target.value); renderPreview(); save(); });
