@@ -70,18 +70,17 @@
     .task-select small { color: var(--muted); font-size: 11px; font-weight: 400; }
     .task-delete { padding: 7px 8px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 12px; }
     .task-delete:hover { color: var(--danger); background: #fff1ee; }
-    .task-menu-actions { margin-top: 9px; padding-top: 9px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid var(--soft-line); }
-    .task-menu-actions .btn { min-height: 36px; padding: 0 9px; font-size: 12px; }
     .top-actions { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-    .history-switcher, .export-switcher { position: relative; }
-    .history-menu, .export-menu {
+    .history-switcher, .import-switcher, .settings-switcher, .export-switcher { position: relative; }
+    .history-switcher > .btn, .import-switcher > .btn, .settings-switcher > .btn, .export-switcher > .btn { width: 104px; }
+    .history-menu, .import-menu, .settings-menu, .export-menu {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 70; width: 220px;
       padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
     }
-    .history-menu { width: 150px; }
-    .history-menu[hidden], .export-menu[hidden] { display: none; }
-    .history-menu .btn, .export-menu .btn { width: 100%; min-height: 38px; justify-content: flex-start; border: 0; background: transparent; }
-    .history-menu .btn:hover, .export-menu .btn:hover { background: var(--soft); }
+    .history-menu, .import-menu, .settings-menu { width: 150px; }
+    .history-menu[hidden], .import-menu[hidden], .settings-menu[hidden], .export-menu[hidden] { display: none; }
+    .history-menu .btn, .import-menu .btn, .settings-menu .btn, .export-menu .btn { width: 100%; min-height: 38px; justify-content: flex-start; border: 0; background: transparent; }
+    .history-menu .btn:hover, .import-menu .btn:hover, .settings-menu .btn:hover, .export-menu .btn:hover { background: var(--soft); }
     .btn {
       min-height: 42px; padding: 0 16px;
       display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -95,7 +94,6 @@
     .btn-primary { color: #fff; background: var(--primary); border-color: var(--primary); }
     .btn-primary:hover { color: #fff; background: var(--primary-active); border-color: var(--primary-active); }
     .btn-small { min-height: 34px; padding: 0 11px; border-radius: 9px; font-size: 13px; }
-    .btn-icon { width: 34px; padding: 0; }
     .workspace {
       width: min(1600px, 100%); min-height: calc(100vh - 72px); margin: auto; padding: 20px;
       display: grid; grid-template-columns: minmax(420px, .92fr) minmax(520px, 1.08fr); gap: 20px;
@@ -417,27 +415,35 @@
       <button class="btn task-trigger" id="taskTrigger" type="button"><span id="currentTaskName">当前线路</span><b aria-hidden="true">⌄</b></button>
       <div class="task-menu" id="taskMenu" hidden>
         <div class="task-list" id="taskList"></div>
-        <div class="task-menu-actions">
-          <button class="btn" id="newBlankTaskBtn" type="button">＋ 空白线路</button>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="history-switcher">
+        <button class="btn" id="historyTrigger" type="button" aria-expanded="false">撤销 <b aria-hidden="true">⌄</b></button>
+        <div class="history-menu" id="historyMenu" hidden>
+          <button class="btn" id="undoBtn" type="button">撤销</button>
+          <button class="btn" id="resetBtn" type="button">恢复示例</button>
+        </div>
+      </div>
+      <div class="import-switcher">
+        <button class="btn" id="importTrigger" type="button" aria-expanded="false">导入 <b aria-hidden="true">⌄</b></button>
+        <div class="import-menu" id="importMenu" hidden>
+          <button class="btn" id="newBlankTaskBtn" type="button">新建空白</button>
           <button class="btn" id="duplicateTaskBtn" type="button">复制当前</button>
-          <button class="btn" id="importReferenceBtn" type="button">上传参考线路</button>
+          <button class="btn" id="importReferenceBtn" type="button">导入线路</button>
+        </div>
+      </div>
+      <div class="settings-switcher">
+        <button class="btn" id="settingsTrigger" type="button" aria-expanded="false">设置 <b aria-hidden="true">⌄</b></button>
+        <div class="settings-menu" id="settingsMenu" hidden>
+          <button class="btn" id="deepseekSettingsBtn" type="button">API 设置</button>
           <button class="btn" id="letterheadSettingsBtn" type="button">抬头纸设置</button>
           <button class="btn" id="backupTasksBtn" type="button">备份任务库</button>
           <button class="btn" id="restoreTasksBtn" type="button">恢复任务库</button>
         </div>
       </div>
-    </div>
-    <div class="top-actions">
-      <div class="history-switcher">
-        <button class="btn" id="historyTrigger" type="button" aria-expanded="false">撤销/恢复 <b aria-hidden="true">⌄</b></button>
-        <div class="history-menu" id="historyMenu" hidden>
-          <button class="btn" id="undoBtn" type="button">↶ 撤销</button>
-          <button class="btn" id="resetBtn" type="button">↺ 恢复示例</button>
-        </div>
-      </div>
-      <button class="btn" id="deepseekSettingsBtn" type="button">API 设置</button>
       <div class="export-switcher">
-        <button class="btn btn-primary" id="exportTrigger" type="button" aria-expanded="false"><span aria-hidden="true">⇩</span> 导出 <b aria-hidden="true">⌄</b></button>
+        <button class="btn btn-primary" id="exportTrigger" type="button" aria-expanded="false">导出 <b aria-hidden="true">⌄</b></button>
         <div class="export-menu" id="exportMenu" hidden>
           <button class="btn" id="exportPdfWithBgBtn" type="button">PDF（带抬头纸）</button>
           <button class="btn" id="exportPdfPlainBtn" type="button">PDF（不带抬头纸）</button>
@@ -625,7 +631,6 @@
     (async () => {
       "use strict";
       const STORAGE_KEY = "trip-plan-single-file-v1";
-      const SAVED_EXAMPLE_KEY = "trip-plan-saved-example-v1";
       const LIBRARY_KEY = "trip-plan-task-library-v1";
       const DEEPSEEK_KEY = "trip-plan-deepseek-settings-v1";
       const LETTERHEAD_KEY = "trip-plan-letterhead-settings-v1";
@@ -767,25 +772,6 @@
       let letterheadDraft = clone(letterheadSettings);
       let letterheadImageUrl = "";
       let letterheadBlob = null;
-      const importSchema = {
-        type:"object", additionalProperties:false,
-        properties:{
-          title:{type:"string"}, highlights:{type:"array",items:{type:"string"}},
-          days:{type:"array",items:{
-            type:"object", additionalProperties:false,
-            properties:{
-              date:{type:"string"}, route:{type:"string"}, flight:{type:"string"},
-              morning:{type:"string"}, afternoon:{type:"string"}, remark:{type:"string"},
-              lodging:{type:"string"}, breakfast:{type:"string"}, lunch:{type:"string"}, dinner:{type:"string"}
-            },
-            required:["date","route","flight","morning","afternoon","remark","lodging","breakfast","lunch","dinner"]
-          }},
-          standards:{type:"array",items:{type:"string"}}, notes:{type:"array",items:{type:"string"}},
-          warnings:{type:"array",items:{type:"string"}}, missingFields:{type:"array",items:{type:"string"}}
-        },
-        required:["title","highlights","days","standards","notes","warnings","missingFields"]
-      };
-
       function uid() {
         return `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
       }
@@ -990,14 +976,6 @@
           days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",breakfast:"",lunch:"",dinner:"",flight:""}],
           standards:clone(example.standards), notes:clone(example.notes), _heights:clone(data?._heights || {})
         };
-      }
-      function savedExample() {
-        return clone(example);
-      }
-      function captureCurrentAsExample() {
-        try {
-          localStorage.setItem(SAVED_EXAMPLE_KEY,JSON.stringify(example));
-        } catch (_) {}
       }
       function toIso(date) {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
@@ -2036,6 +2014,8 @@ ${text}`;
         if (!$("#calendarPopover").hidden && !e.target.closest("#calendarPopover") && !e.target.closest("[data-calendar-index]")) closeCalendar();
         if (!$("#taskMenu").hidden && !e.target.closest(".task-switcher")) closeTaskMenu();
         if (!$("#historyMenu").hidden && !e.target.closest(".history-switcher")) closeHistoryMenu();
+        if (!$("#importMenu").hidden && !e.target.closest(".import-switcher")) closeImportMenu();
+        if (!$("#settingsMenu").hidden && !e.target.closest(".settings-switcher")) closeSettingsMenu();
         if (!$("#exportMenu").hidden && !e.target.closest(".export-switcher")) {
           $("#exportMenu").hidden = true;
           $("#exportTrigger").setAttribute("aria-expanded","false");
@@ -2047,6 +2027,8 @@ ${text}`;
         if (e.key === "Escape" && !$("#letterheadModal").hidden) closeLetterheadModal();
         if (e.key === "Escape" && !$("#confirmModal").hidden) closeConfirmModal(false);
         if (e.key === "Escape" && !$("#historyMenu").hidden) closeHistoryMenu();
+        if (e.key === "Escape" && !$("#importMenu").hidden) closeImportMenu();
+        if (e.key === "Escape" && !$("#settingsMenu").hidden) closeSettingsMenu();
       });
       $("#taskTrigger").addEventListener("click",() => {
         $("#taskMenu").hidden = !$("#taskMenu").hidden;
@@ -2058,13 +2040,13 @@ ${text}`;
         const remove = e.target.closest("[data-delete-task]");
         if (remove) deleteTask(remove.dataset.deleteTask);
       });
-      $("#newBlankTaskBtn").addEventListener("click",() => createTask("blank"));
-      $("#duplicateTaskBtn").addEventListener("click",() => createTask("duplicate"));
-      $("#importReferenceBtn").addEventListener("click",openImportModal);
-      $("#deepseekSettingsBtn").addEventListener("click",openApiModal);
-      $("#letterheadSettingsBtn").addEventListener("click",openLetterheadModal);
-      $("#backupTasksBtn").addEventListener("click",backupTasks);
-      $("#restoreTasksBtn").addEventListener("click",() => $("#restoreTasksInput").click());
+      $("#newBlankTaskBtn").addEventListener("click",() => { closeImportMenu(); createTask("blank"); });
+      $("#duplicateTaskBtn").addEventListener("click",() => { closeImportMenu(); createTask("duplicate"); });
+      $("#importReferenceBtn").addEventListener("click",() => { closeImportMenu(); openImportModal(); });
+      $("#deepseekSettingsBtn").addEventListener("click",() => { closeSettingsMenu(); openApiModal(); });
+      $("#letterheadSettingsBtn").addEventListener("click",() => { closeSettingsMenu(); openLetterheadModal(); });
+      $("#backupTasksBtn").addEventListener("click",() => { closeSettingsMenu(); backupTasks(); });
+      $("#restoreTasksBtn").addEventListener("click",() => { closeSettingsMenu(); $("#restoreTasksInput").click(); });
       $("#restoreTasksInput").addEventListener("change",e => {
         const file = e.target.files?.[0];
         if (file) restoreTasks(file);
@@ -2127,12 +2109,30 @@ ${text}`;
         $("#historyMenu").hidden = true;
         $("#historyTrigger").setAttribute("aria-expanded","false");
       }
+      $("#importTrigger").addEventListener("click",() => {
+        const open = $("#importMenu").hidden;
+        $("#importMenu").hidden = !open;
+        $("#importTrigger").setAttribute("aria-expanded",String(open));
+      });
+      function closeImportMenu() {
+        $("#importMenu").hidden = true;
+        $("#importTrigger").setAttribute("aria-expanded","false");
+      }
+      $("#settingsTrigger").addEventListener("click",() => {
+        const open = $("#settingsMenu").hidden;
+        $("#settingsMenu").hidden = !open;
+        $("#settingsTrigger").setAttribute("aria-expanded",String(open));
+      });
+      function closeSettingsMenu() {
+        $("#settingsMenu").hidden = true;
+        $("#settingsTrigger").setAttribute("aria-expanded","false");
+      }
       $("#undoBtn").addEventListener("click",() => { closeHistoryMenu(); undo(); });
       $("#resetBtn").addEventListener("click",async () => {
         closeHistoryMenu();
         if (!await askConfirmation("当前线路中的修改将被最新版示例覆盖。","确定恢复最新版示例吗？")) return;
         remember();
-        data = clone(savedExample()); renderAll(); save(); toast("已恢复最新版示例");
+        data = clone(example); renderAll(); save(); toast("已恢复最新版示例");
       });
       $("#addDayBottom").addEventListener("click",addDay);
       $("#exportTrigger").addEventListener("click",() => {
@@ -2156,7 +2156,6 @@ ${text}`;
       renderTaskMenu();
       requestAnimationFrame(() => {
         captureCurrentSizes();
-        captureCurrentAsExample();
         save();
       });
       updateUndoButton();
