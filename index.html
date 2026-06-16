@@ -201,6 +201,14 @@
     .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 12px; margin-bottom: 12px; }
     .grid-2 .field { margin-bottom: 0; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 0 10px; }
+    .lodging-field .lodging-head { margin: 0 0 6px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .lodging-field .lodging-head span { margin: 0; }
+    .lodging-link-toggle {
+      min-height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px;
+      color: var(--muted); background: #fff; font-size: 12px; font-weight: 600;
+    }
+    .lodging-link-toggle.active { color: var(--primary); border-color: #ffd1da; background: #fff1f4; }
+    .lodging-link-input { margin-top: 8px; }
     .preview-panel { padding: 20px; background: #eee; }
     .preview-shell {
       width: 100%; max-width: 900px; min-height: calc(100vh - 152px); margin: auto; padding: 38px 40px;
@@ -262,6 +270,7 @@
     .meal-item { min-width: 0; display: grid; grid-template-columns: 18px 1fr; gap: 4px; }
     .meal-item b { font-weight: 600; }
     .lodging-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; }
+    .lodging-row a { color: inherit; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
     .info-section { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
     .info-section h3 { margin: 0 0 12px; font-size: 17px; }
     .info-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--body); }
@@ -669,7 +678,8 @@
                         "morning": "大连乘机飞往重庆，抵达后导游接站；\n打卡【解放碑商圈】，自由感受都市繁华与网红胜地；",
                         "remark": "",
                         "route": "大连 — 重庆",
-                        "weekday": "周四"
+                        "weekday": "周四",
+                        "lodgingUrl": ""
                 },
                 {
                         "afternoon": "体验【长江索道】，游览【南山一棵树观景台】，俯瞰重庆城市风光。",
@@ -682,7 +692,8 @@
                         "morning": "游览【磁器口古镇】，感受巴渝民俗文化和古街美食；",
                         "remark": "",
                         "route": "重庆",
-                        "weekday": "周五"
+                        "weekday": "周五",
+                        "lodgingUrl": ""
                 },
                 {
                         "afternoon": "抵达成都后游览【锦里古街】及【宽窄巷子】，感受巴蜀历史文化氛围。",
@@ -695,7 +706,8 @@
                         "morning": "乘坐高铁前往成都（约2小时），沿途欣赏川渝风光；",
                         "remark": "",
                         "route": "重庆 — 成都",
-                        "weekday": "周六"
+                        "weekday": "周六",
+                        "lodgingUrl": ""
                 },
                 {
                         "afternoon": "游览道教名山【青城山】，漫步绿意竹林，感受自然仙境。",
@@ -708,7 +720,8 @@
                         "morning": "游览世界文化遗产【都江堰景区】，体验千年水利奇迹；",
                         "remark": "",
                         "route": "成都 — 都江堰 — 青城山",
-                        "weekday": "周日"
+                        "weekday": "周日",
+                        "lodgingUrl": ""
                 },
                 {
                         "afternoon": "前往【峨眉⼭】，游报国寺等景点，体验⾦顶仙境⻛光（缆⻋⾃理）。",
@@ -721,7 +734,8 @@
                         "morning": "游览【乐⼭⼤佛】，欣赏世界最⼤⽯刻佛像壮丽景观；",
                         "remark": "",
                         "route": "成都 — 乐⼭ — 峨眉⼭",
-                        "weekday": "周一"
+                        "weekday": "周一",
+                        "lodgingUrl": ""
                 },
                 {
                         "afternoon": "前往双流机场，乘机返回大连，结束旅程。",
@@ -734,7 +748,8 @@
                         "morning": "自由活动；",
                         "remark": "",
                         "route": "成都 — 大连",
-                        "weekday": "周二"
+                        "weekday": "周二",
+                        "lodgingUrl": ""
                 }
         ],
         "departureNotice": {
@@ -1004,7 +1019,7 @@
           title:"", highlights:"",
           departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
           quoteDetails:{visible:false,content:""},
-          days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",breakfast:"",lunch:"",dinner:"",flight:""}],
+          days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",lodgingUrl:"",breakfast:"",lunch:"",dinner:"",flight:""}],
           standards:clone(example.standards), notes:clone(example.notes), _heights:clone(data?._heights || {})
         };
       }
@@ -1339,7 +1354,7 @@
         const days = Array.isArray(raw?.days) ? raw.days.map(day => ({
           date:text(day?.date), weekday:"", route:text(day?.route), flight:text(day?.flight),
           morning:text(day?.morning), afternoon:text(day?.afternoon), remark:text(day?.remark),
-          lodging:text(day?.lodging), breakfast:text(day?.breakfast), lunch:text(day?.lunch), dinner:text(day?.dinner)
+          lodging:text(day?.lodging), lodgingUrl:text(day?.lodgingUrl), breakfast:text(day?.breakfast), lunch:text(day?.lunch), dinner:text(day?.dinner)
         })) : [];
         if (!days.length) throw new Error("未识别到每日行程，请确认文件中包含 D1、D2 等每日内容。");
         const dateParts = days.map(day => readDateParts(day.date));
@@ -1682,7 +1697,7 @@ ${text}`;
         const previous = data.days[index - 1];
         const date = previous ? parseDate(previous.date) : null;
         if (date) date.setDate(date.getDate() + 1);
-        return { date:date ? toIso(date) : "", weekday:date ? weekdays[date.getDay()] : "", route:`第${index + 1}天路线`, morning:"", afternoon:"", remark:"", lodging:"", breakfast:"", lunch:"", dinner:"", flight:"" };
+        return { date:date ? toIso(date) : "", weekday:date ? weekdays[date.getDay()] : "", route:`第${index + 1}天路线`, morning:"", afternoon:"", remark:"", lodging:"", lodgingUrl:"", breakfast:"", lunch:"", dinner:"", flight:"" };
       }
       function fieldHtml(day, index, field) {
         const [key,label,placeholder,type] = field;
@@ -1692,7 +1707,20 @@ ${text}`;
           ? `<textarea data-index="${index}" data-field="${key}" placeholder="${placeholder}" ${data._heights?.[key] ? `style="height:${data._heights[key]}px"` : ""}>${value}</textarea>`
           : `<input type="text" data-index="${index}" data-field="${key}" value="${value}" placeholder="${placeholder}">`}</label>`;
       }
+      function lodgingFieldHtml(day, index) {
+        const url = esc(day.lodgingUrl || "");
+        const expanded = Boolean(day.lodgingUrl);
+        return `<div class="field lodging-field">
+          <div class="lodging-head">
+            <span>住宿</span>
+            <button class="lodging-link-toggle ${expanded ? "active" : ""}" type="button" data-lodging-link-toggle="${index}" aria-expanded="${expanded}">携程链接</button>
+          </div>
+          <input type="text" data-index="${index}" data-field="lodging" value="${esc(day.lodging)}" placeholder="例如：重庆市区酒店">
+          <input class="lodging-link-input" type="url" data-index="${index}" data-field="lodgingUrl" value="${url}" placeholder="粘贴携程酒店链接" ${expanded ? "" : "hidden"}>
+        </div>`;
+      }
       function dayFieldHtml(day, index, key) {
+        if (key === "lodging") return lodgingFieldHtml(day,index);
         return fieldHtml(day,index,fieldMap[key]);
       }
       function applyGlobalHeight(id) {
@@ -1783,6 +1811,29 @@ ${text}`;
         closeCalendar(); renderAll(openIndex); save();
         toast(value ? "全部日期和星期已自动调整" : "全部日期和星期已清除");
       }
+      function datedHotelUrl(rawUrl, checkIn) {
+        const urlText = String(rawUrl || "").trim();
+        if (!urlText || !checkIn) return urlText;
+        const inDate = parseDate(checkIn);
+        if (!inDate) return urlText;
+        const outDate = new Date(inDate);
+        outDate.setDate(outDate.getDate() + 1);
+        const checkInText = toIso(inDate), checkOutText = toIso(outDate);
+        try {
+          const url = new URL(urlText,location.href);
+          [["checkIn",checkInText],["checkin",checkInText],["checkInDate",checkInText],["checkindate",checkInText],["startDate",checkInText],["startdate",checkInText]].forEach(([key,value]) => url.searchParams.set(key,value));
+          [["checkOut",checkOutText],["checkout",checkOutText],["checkOutDate",checkOutText],["checkoutdate",checkOutText],["endDate",checkOutText],["enddate",checkOutText]].forEach(([key,value]) => url.searchParams.set(key,value));
+          return url.href;
+        } catch (_) {
+          return urlText;
+        }
+      }
+      function lodgingPreviewHtml(day) {
+        const label = esc(day.lodging || "待定");
+        const href = datedHotelUrl(day.lodgingUrl,day.date);
+        if (!href || !/^https?:\/\//i.test(href)) return label;
+        return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+      }
       function renderEditor(openIndex = null) {
         $("#titleInput").value = data.title || "";
         data.departureNotice ||= {visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""};
@@ -1861,7 +1912,7 @@ ${text}`;
                 <span class="meal-item"><b>午</b><span>${esc(day.lunch || "—")}</span></span>
                 <span class="meal-item"><b>晚</b><span>${esc(day.dinner || "—")}</span></span>
               </div>
-              <div class="meta lodging-row"><b>住宿：</b><span>${esc(day.lodging || "待定")}</span></div>
+              <div class="meta lodging-row"><b>住宿：</b><span>${lodgingPreviewHtml(day)}</span></div>
             </div>
           </section>`).join("");
         const list = (title, items) => items?.length ? `<section class="info-section"><h3>${title}</h3><ul class="info-list">${items.map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : "";
@@ -1994,6 +2045,10 @@ ${text}`;
         if (!Number.isInteger(index) || !field || !data.days[index]) return;
         remember();
         data.days[index][field] = e.target.value;
+        if (field === "lodgingUrl") {
+          const toggle = e.target.closest(".lodging-field")?.querySelector(".lodging-link-toggle");
+          toggle?.classList.toggle("active",Boolean(e.target.value.trim()));
+        }
         if (field === "date") {
           syncDates(index,e.target.value);
           renderAll(index);
@@ -2021,6 +2076,19 @@ ${text}`;
         const calendarTrigger = e.target.closest("[data-calendar-index]");
         if (calendarTrigger) {
           openCalendar(Number(calendarTrigger.dataset.calendarIndex),calendarTrigger);
+          return;
+        }
+        const lodgingLinkToggle = e.target.closest("[data-lodging-link-toggle]");
+        if (lodgingLinkToggle) {
+          e.preventDefault();
+          e.stopPropagation();
+          const input = lodgingLinkToggle.closest(".lodging-field")?.querySelector(".lodging-link-input");
+          if (!input) return;
+          const show = input.hidden;
+          input.hidden = !show;
+          lodgingLinkToggle.classList.toggle("active",show || Boolean(input.value));
+          lodgingLinkToggle.setAttribute("aria-expanded",String(show));
+          if (show) input.focus();
           return;
         }
         const button = e.target.closest("[data-action]");
