@@ -93,6 +93,29 @@ test("hides optional departure notice fields until they have content", () => {
   assert.match(html, /noticeFields\.filter\(\(\[field\]\) => requiredNoticeFields\.has\(field\) \|\| notice\[field\]\)/);
 });
 
+test("shows bullets in standards and notes editors without changing list data", () => {
+  assert.match(html, /\.bullet-list-row::before \{[\s\S]*?background: var\(--primary\)/);
+  assert.match(html, /<div class="bullet-list-editor" id="standardsInput" data-list-editor="standards"><\/div>/);
+  assert.match(html, /<div class="bullet-list-editor" id="notesInput" data-list-editor="notes"><\/div>/);
+  assert.match(html, /function listEditorRowsHtml\(field, items\)/);
+  assert.match(html, /data-list-field="\$\{field\}"/);
+  assert.match(html, /if \(e\.key === "Enter"\)/);
+  assert.match(html, /syncListEditorData\(field\)/);
+});
+
+test("styles lodging link button with Ctrip blue and white text", () => {
+  assert.match(html, /\.lodging-link-toggle \{[\s\S]*?border: 1px solid #2577e3[\s\S]*?color: #fff; background: #2577e3/s);
+  assert.match(html, /\.lodging-link-toggle:hover, \.lodging-link-toggle\.active \{[\s\S]*?color: #fff; border-color: #1f63bd; background: #1f63bd/s);
+});
+
+test("marks lodging text and preview link blue when a Ctrip URL exists", () => {
+  assert.match(html, /\.lodging-linked-text \{ color: #2577e3; \}/);
+  assert.match(html, /\.lodging-row a \{ color: #2577e3; text-decoration: none;[^}]*overflow-wrap: anywhere; \}/);
+  assert.match(html, /<input class="\$\{expanded \? "lodging-linked-text" : ""\}" type="text" data-index="\$\{index\}" data-field="lodging"/);
+  assert.match(html, /class="lodging-preview-link"/);
+  assert.match(html, /querySelector\('\[data-field="lodging"\]'\)\?\.classList\.toggle\("lodging-linked-text",Boolean\(e\.target\.value\.trim\(\)\)\)/);
+});
+
 test("provides editable quote table controls and automatic totals", () => {
   assert.match(html, /id="quoteTableEditor"/);
   assert.match(html, /id="addQuoteRowBtn"/);
@@ -111,7 +134,7 @@ test("calculates service fee before tax and renders quote details as a table", (
   assert.match(html, /class="preview-quote-table"/);
 });
 
-test("allows quote text cells to wrap and grow with full content", () => {
+test("allows quote text cells to wrap at cell width and manual line breaks", () => {
   assert.match(html, /function quoteTextCellHtml\(/);
   assert.match(html, /<textarea class="quote-cell-text"[^>]*data-quote-field="\$\{field\}">/);
   assert.doesNotMatch(html, /placeholder="项目"/);
@@ -124,6 +147,7 @@ test("allows quote text cells to wrap and grow with full content", () => {
 test("centers quote cells and gives content columns more room", () => {
   assert.match(html, /\.quote-table th, \.quote-table td, \.preview-quote-table th, \.preview-quote-table td \{[^}]*text-align: center/s);
   assert.match(html, /\.quote-table input, \.quote-table textarea, \.quote-note \{[^}]*text-align: center/s);
+  assert.doesNotMatch(html, /\.quote-project-cell \.quote-cell-text \{[^}]*padding-right/s);
   assert.match(html, /<col style="width:14%"><col style="width:40%"><col style="width:12%"><col style="width:12%"><col style="width:10%"><col style="width:12%">/);
 });
 
@@ -135,4 +159,25 @@ test("removes the remark column from quote tables", () => {
 test("labels quote amount headers with yuan", () => {
   assert.match(html, /<th>单价（元）<\/th>/);
   assert.match(html, /<th>总价（元）<\/th>/);
+});
+
+test("does not duplicate quote add button id", () => {
+  const matches = html.match(/id="addQuoteRowBtn"/g) || [];
+  assert.equal(matches.length, 1);
+});
+
+test("keeps mobile header as two rows instead of squeezing task name away", () => {
+  assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.topbar \{[^}]*flex-wrap: wrap/s);
+  assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.top-actions \{[^}]*flex: 0 0 100%/s);
+  assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.top-actions \{[^}]*grid-template-columns: repeat\(3,minmax\(0,1fr\)\)/s);
+});
+
+test("keeps header save state label fixed as Kevin-SZ", () => {
+  assert.match(html, /<div class="save-state" id="saveState">Kevin-SZ<\/div>/);
+  assert.doesNotMatch(html, /\$\("#saveState"\)\.textContent\s*=/);
+});
+
+test("shows the compact brand title in the header", () => {
+  assert.match(html, /<h1>线路定制<\/h1>/);
+  assert.doesNotMatch(html, /<h1>旅行线路定制<\/h1>/);
 });

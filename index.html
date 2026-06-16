@@ -43,9 +43,8 @@
     }
     .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
     .brand-mark {
-      width: 38px; height: 38px; display: grid; place-items: center;
-      color: white; background: var(--primary); border-radius: 12px;
-      font-size: 20px; font-weight: 700;
+      width: 38px; height: 38px; display: block;
+      border-radius: 12px; object-fit: cover;
     }
     .brand h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.2px; }
     .save-state { color: var(--muted); font-size: 12px; margin-top: 1px; }
@@ -59,7 +58,6 @@
       position: absolute; top: calc(100% + 8px); left: 0; z-index: 70; width: min(360px, calc(100vw - 24px));
       padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
     }
-    .task-menu[hidden] { display: none; }
     .task-list { max-height: 300px; overflow: auto; display: grid; gap: 4px; }
     .task-item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px; align-items: center; border-radius: 9px; }
     .task-select {
@@ -78,7 +76,6 @@
       padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
     }
     .history-menu, .import-menu, .settings-menu { width: 150px; }
-    .history-menu[hidden], .import-menu[hidden], .settings-menu[hidden], .export-menu[hidden] { display: none; }
     .history-menu .btn, .import-menu .btn, .settings-menu .btn, .export-menu .btn { width: 100%; min-height: 38px; justify-content: flex-start; border: 0; background: transparent; }
     .history-menu .btn:hover, .import-menu .btn:hover, .settings-menu .btn:hover, .export-menu .btn:hover { background: var(--soft); }
     .btn {
@@ -121,6 +118,21 @@
     }
     input:focus, textarea:focus, select:focus { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
     textarea { min-height: 76px; line-height: 1.55; }
+    .bullet-list-editor {
+      min-height: 76px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
+      background: #fff; transition: border-color .15s;
+    }
+    .bullet-list-editor:focus-within { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+    .bullet-list-row { position: relative; padding-left: 17px; }
+    .bullet-list-row::before {
+      content: ""; position: absolute; left: 0; top: .72em; width: 5px; height: 5px;
+      background: var(--primary); border-radius: 50%;
+    }
+    .bullet-list-row textarea {
+      min-height: 22px; padding: 0; border: 0; border-radius: 0; background: transparent;
+      resize: none; overflow: hidden; line-height: 1.55;
+    }
+    .bullet-list-row textarea:focus { box-shadow: none; }
     .date-picker-wrap { position: relative; }
     .date-trigger {
       width: 100%; min-height: 44px; padding: 11px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -132,7 +144,6 @@
       position: fixed; z-index: 80; width: 310px; padding: 14px;
       background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
     }
-    .calendar-popover[hidden] { display: none; }
     .calendar-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
     .calendar-title { font-size: 15px; font-weight: 700; }
     .calendar-nav { display: flex; gap: 6px; }
@@ -204,11 +215,12 @@
     .lodging-field .lodging-head { margin: 0 0 6px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .lodging-field .lodging-head span { margin: 0; }
     .lodging-link-toggle {
-      min-height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px;
-      color: var(--muted); background: #fff; font-size: 12px; font-weight: 600;
+      min-height: 28px; padding: 0 9px; border: 1px solid #2577e3; border-radius: 8px;
+      color: #fff; background: #2577e3; font-size: 12px; font-weight: 600;
     }
-    .lodging-link-toggle.active { color: var(--primary); border-color: #ffd1da; background: #fff1f4; }
+    .lodging-link-toggle:hover, .lodging-link-toggle.active { color: #fff; border-color: #1f63bd; background: #1f63bd; }
     .lodging-link-input { margin-top: 8px; }
+    .lodging-linked-text { color: #2577e3; }
     .preview-panel { padding: 20px; background: #eee; }
     .preview-shell {
       width: 100%; max-width: 900px; min-height: calc(100vh - 152px); margin: auto; padding: 38px 40px;
@@ -253,10 +265,8 @@
     }
     .quote-table input:focus, .quote-table textarea:focus, .quote-note:focus { border-color: var(--ink); background: #fff; box-shadow: 0 0 0 1px var(--ink); }
     .quote-cell-text { overflow: hidden; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-    .quote-table .quote-num, .quote-table .quote-total, .preview-quote-table .quote-num, .preview-quote-table .quote-total { text-align: center; }
     .quote-total { font-weight: 700; }
     .quote-project-cell { position: relative; }
-    .quote-project-cell .quote-cell-text { padding-right: 24px; }
     .quote-delete {
       position: absolute; top: 4px; right: 4px; width: 18px; min-height: 18px; padding: 0; border: 0; border-radius: 999px;
       color: var(--muted); background: transparent; font-size: 14px; line-height: 1;
@@ -275,7 +285,7 @@
     .quote-summary-row td { background: #fff8fa; font-weight: 700; }
     .quote-summary-row .quote-total { color: var(--primary); }
     .preview-quote-table { font-size: 11px; background: #fff; }
-    .preview-quote-table th { padding: 6px 5px; background: #f7e4ed; font-weight: 700; text-align: center; }
+    .preview-quote-table th { padding: 6px 5px; background: #f7e4ed; font-weight: 700; }
     .preview-quote-table td { padding: 6px 5px; color: var(--body); overflow-wrap: anywhere; white-space: pre-wrap; }
     .preview-quote-table tfoot td { color: var(--primary); font-weight: 800; }
     .quote-note-preview {
@@ -320,7 +330,8 @@
     .meal-item { min-width: 0; display: grid; grid-template-columns: 18px 1fr; gap: 4px; }
     .meal-item b { font-weight: 600; }
     .lodging-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; }
-    .lodging-row a { color: inherit; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+    .lodging-row a { color: #2577e3; text-decoration: none; text-underline-offset: 2px; overflow-wrap: anywhere; }
+    .lodging-row a:hover { color: #1f63bd; text-decoration: underline; }
     .info-section { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
     .info-section h3 { margin: 0 0 12px; font-size: 17px; }
     .info-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--body); }
@@ -340,7 +351,6 @@
       position: fixed; inset: 0; z-index: 100; padding: 20px; display: grid; place-items: center;
       background: rgba(0,0,0,.38); backdrop-filter: blur(7px);
     }
-    .modal-backdrop[hidden] { display: none; }
     .import-modal {
       width: min(680px,100%); max-height: min(760px,calc(100vh - 40px)); display: flex; flex-direction: column;
       background: #fff; border: 1px solid var(--soft-line); border-radius: 20px; box-shadow: 0 18px 60px rgba(0,0,0,.22); overflow: hidden;
@@ -425,22 +435,30 @@
       .quote-table th { padding: 7px 4px; }
       .quote-table td { padding: 4px; }
       .quote-table input, .quote-table textarea, .quote-note { padding: 6px 5px; font-size: 11px; }
-      .quote-project-cell .quote-cell-text { padding-right: 18px; }
       .quote-delete { right: 2px; width: 16px; min-height: 16px; font-size: 13px; }
     }
     @media (hover: none) {
       .summary-delete { opacity: 1; visibility: visible; pointer-events: auto; }
     }
     @media (max-width: 620px) {
-      .topbar { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .topbar {
+        height: auto; min-height: 100px; padding: 8px 12px;
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 8px 10px;
+      }
+      .brand { flex: 0 0 auto; max-width: 118px; }
       .brand-mark { width: 34px; height: 34px; border-radius: 10px; }
       .brand h1 { font-size: 15px; }
       .brand .save-state { display: none; }
-      .task-switcher { min-width: 0; max-width: none; flex: 1; }
+      .task-switcher { order: 1; min-width: 150px; max-width: none; flex: 1 1 160px; }
       .task-trigger { min-height: 38px; padding: 0 10px; }
+      .top-actions {
+        order: 2; flex: 0 0 100%; width: 100%; margin-left: 0;
+        display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px;
+      }
+      .top-actions > div { min-width: 0; }
       .top-actions .history-switcher { display: none; }
-      .top-actions .btn { min-height: 38px; padding: 0 12px; }
-      .mobile-tabs { top: 72px; }
+      .top-actions .btn { width: 100%; min-height: 38px; padding: 0 12px; }
+      .mobile-tabs { top: 108px; }
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .calendar-popover { width: min(310px, calc(100vw - 24px)); }
       .preview-shell { padding: 24px 17px; }
@@ -483,10 +501,10 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">行</div>
+      <img class="brand-mark" src="avatar.jpg" alt="头像">
       <div>
-        <h1>旅行线路定制</h1>
-        <div class="save-state" id="saveState">已自动保存</div>
+        <h1>线路定制</h1>
+        <div class="save-state" id="saveState">Kevin-SZ</div>
       </div>
     </div>
     <div class="task-switcher">
@@ -577,14 +595,14 @@
         <section class="section">
           <h3 class="section-title">接待标准</h3>
           <label class="field">
-            <textarea id="standardsInput" rows="7"></textarea>
+            <div class="bullet-list-editor" id="standardsInput" data-list-editor="standards"></div>
           </label>
         </section>
 
         <section class="section">
           <h3 class="section-title">特别说明</h3>
           <label class="field">
-            <textarea id="notesInput" rows="5"></textarea>
+            <div class="bullet-list-editor" id="notesInput" data-list-editor="notes"></div>
           </label>
         </section>
 
@@ -598,9 +616,6 @@
               </label>
             </summary>
             <div class="day-body">
-              <div class="quote-toolbar">
-                <button class="btn btn-small" id="addQuoteRowBtn" type="button">＋ 新增普通项</button>
-              </div>
               <div id="quoteTableEditor"></div>
             </div>
           </details>
@@ -1230,14 +1245,11 @@
       }
       function save() {
         clearTimeout(saveTimer);
-        $("#saveState").textContent = "正在保存…";
         saveTimer = setTimeout(() => {
           try {
             persistLibrary();
             renderTaskMenu();
-            $("#saveState").textContent = "已自动保存";
           } catch (error) {
-            $("#saveState").textContent = "保存空间不足，请先备份任务库";
             toast("保存空间不足，请先备份任务库");
           }
         }, 220);
@@ -1270,6 +1282,14 @@
         el.textContent = message; el.classList.add("show");
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+      }
+      function setMenu(triggerId, menuId, open) {
+        $(`#${menuId}`).hidden = !open;
+        $(`#${triggerId}`).setAttribute("aria-expanded",String(open));
+      }
+      function toggleMenu(triggerId, menuId) {
+        const open = $(`#${menuId}`).hidden;
+        setMenu(triggerId,menuId,open);
       }
       function renderTaskMenu() {
         const sorted = [...library.tasks].sort((a,b) => b.updatedAt - a.updatedAt);
@@ -1867,7 +1887,7 @@ ${text}`;
             <span>住宿</span>
             <button class="lodging-link-toggle ${expanded ? "active" : ""}" type="button" data-lodging-link-toggle="${index}" aria-expanded="${expanded}">携程链接</button>
           </div>
-          <input type="text" data-index="${index}" data-field="lodging" value="${esc(day.lodging)}" placeholder="例如：重庆市区酒店">
+          <input class="${expanded ? "lodging-linked-text" : ""}" type="text" data-index="${index}" data-field="lodging" value="${esc(day.lodging)}" placeholder="例如：重庆市区酒店">
           <input class="lodging-link-input" type="url" data-index="${index}" data-field="lodgingUrl" value="${url}" placeholder="粘贴携程酒店链接" ${expanded ? "" : "hidden"}>
         </div>`;
       }
@@ -1984,7 +2004,7 @@ ${text}`;
         const label = esc(day.lodging || "待定");
         const href = datedHotelUrl(day.lodgingUrl,day.date);
         if (!href || !/^https?:\/\//i.test(href)) return label;
-        return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+        return `<a class="lodging-preview-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
       }
       function quoteTextCellHtml(row, index, field) {
         return `<textarea class="quote-cell-text" rows="1" data-quote-index="${index}" data-quote-field="${field}">${esc(row[field])}</textarea>`;
@@ -2073,6 +2093,38 @@ ${text}`;
           textarea.style.height = `${textarea.scrollHeight + 2}px`;
         });
       }
+      function listEditorRowsHtml(field, items) {
+        const rows = items?.length ? items : [""];
+        return rows.map((value,index) => `
+          <div class="bullet-list-row">
+            <textarea rows="1" data-list-field="${field}" data-list-index="${index}">${esc(value)}</textarea>
+          </div>`).join("");
+      }
+      function autosizeListEditor(scope = document) {
+        scope.querySelectorAll("[data-list-field]").forEach(textarea => {
+          textarea.style.height = "auto";
+          textarea.style.height = `${textarea.scrollHeight}px`;
+        });
+      }
+      function listEditorValues(field) {
+        return [...document.querySelectorAll(`[data-list-field="${field}"]`)].map(input => input.value);
+      }
+      function syncListEditorData(field) {
+        data[field] = listEditorValues(field).map(item => item.trim()).filter(Boolean);
+      }
+      function rerenderListEditor(editor, field, items, focusIndex) {
+        data[field] = items.map(item => item.trim()).filter(Boolean);
+        editor.innerHTML = listEditorRowsHtml(field,items);
+        autosizeListEditor(editor);
+        renderPreview(); save(); focusListRow(field,focusIndex);
+      }
+      function focusListRow(field, index) {
+        requestAnimationFrame(() => {
+          const input = document.querySelector(`[data-list-field="${field}"][data-list-index="${index}"]`);
+          input?.focus();
+          input?.setSelectionRange(input.value.length,input.value.length);
+        });
+      }
       function updateQuoteComputed() {
         data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         const totals = calculateQuoteTotals(data.quoteDetails);
@@ -2102,10 +2154,9 @@ ${text}`;
         });
         $("#highlightsInput").value = data.highlights || "";
         applyGlobalHeight("highlightsInput");
-        $("#standardsInput").value = (data.standards || []).join("\n");
-        applyGlobalHeight("standardsInput");
-        $("#notesInput").value = (data.notes || []).join("\n");
-        applyGlobalHeight("notesInput");
+        $("#standardsInput").innerHTML = listEditorRowsHtml("standards",data.standards);
+        $("#notesInput").innerHTML = listEditorRowsHtml("notes",data.notes);
+        autosizeListEditor();
         data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         const quoteVisible = Boolean(data.quoteDetails.visible);
         $("#quoteDetailsVisible").checked = quoteVisible;
@@ -2282,7 +2333,10 @@ ${text}`;
         renderPreview(); save();
         toast(e.target.checked ? "报价明细已显示" : "报价明细已隐藏");
       });
-      $("#addQuoteRowBtn").addEventListener("click",() => {
+      $("#quoteDetailsEditor").addEventListener("click", e => {
+        const addButton = e.target.closest("#addQuoteRowBtn");
+        if (!addButton) return;
+        e.preventDefault();
         remember();
         data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         data.quoteDetails.rows.push(blankQuoteRow());
@@ -2325,8 +2379,40 @@ ${text}`;
         renderAll(); save();
       });
       $("#highlightsInput").addEventListener("input", e => { remember(); data.highlights = e.target.value; renderPreview(); save(); });
-      $("#standardsInput").addEventListener("input", e => { remember(); data.standards = lines(e.target.value); renderPreview(); save(); });
-      $("#notesInput").addEventListener("input", e => { remember(); data.notes = lines(e.target.value); renderPreview(); save(); });
+      document.querySelectorAll("[data-list-editor]").forEach(editor => {
+        editor.addEventListener("input", e => {
+          const field = e.target.dataset.listField;
+          if (!field) return;
+          remember();
+          autosizeListEditor(editor);
+          syncListEditorData(field);
+          renderPreview(); save();
+        });
+        editor.addEventListener("keydown", e => {
+          const field = e.target.dataset.listField;
+          if (!field) return;
+          const index = Number(e.target.dataset.listIndex);
+          if (e.key === "Enter") {
+            e.preventDefault();
+            remember();
+            const value = e.target.value;
+            const start = e.target.selectionStart;
+            const end = e.target.selectionEnd;
+            const before = value.slice(0,start), after = value.slice(end);
+            const items = listEditorValues(field);
+            items[index] = before;
+            items.splice(index + 1,0,after);
+            rerenderListEditor(editor,field,items,index + 1);
+          }
+          if (e.key === "Backspace" && !e.target.value && document.querySelectorAll(`[data-list-field="${field}"]`).length > 1) {
+            e.preventDefault();
+            remember();
+            const items = listEditorValues(field);
+            items.splice(index,1);
+            rerenderListEditor(editor,field,items,Math.max(0,index - 1));
+          }
+        });
+      });
       $("#daysEditor").addEventListener("input", e => {
         const index = Number(e.target.dataset.index), field = e.target.dataset.field;
         if (!Number.isInteger(index) || !field || !data.days[index]) return;
@@ -2335,6 +2421,7 @@ ${text}`;
         if (field === "lodgingUrl") {
           const toggle = e.target.closest(".lodging-field")?.querySelector(".lodging-link-toggle");
           toggle?.classList.toggle("active",Boolean(e.target.value.trim()));
+          e.target.closest(".lodging-field")?.querySelector('[data-field="lodging"]')?.classList.toggle("lodging-linked-text",Boolean(e.target.value.trim()));
         }
         if (field === "date") {
           syncDates(index,e.target.value);
@@ -2375,6 +2462,7 @@ ${text}`;
           input.hidden = !show;
           lodgingLinkToggle.classList.toggle("active",show || Boolean(input.value));
           lodgingLinkToggle.setAttribute("aria-expanded",String(show));
+          lodgingLinkToggle.closest(".lodging-field")?.querySelector('[data-field="lodging"]')?.classList.toggle("lodging-linked-text",Boolean(input.value));
           if (show) input.focus();
           return;
         }
@@ -2438,19 +2526,14 @@ ${text}`;
         if (!$("#historyMenu").hidden && !e.target.closest(".history-switcher")) closeHistoryMenu();
         if (!$("#importMenu").hidden && !e.target.closest(".import-switcher")) closeImportMenu();
         if (!$("#settingsMenu").hidden && !e.target.closest(".settings-switcher")) closeSettingsMenu();
-        if (!$("#exportMenu").hidden && !e.target.closest(".export-switcher")) {
-          $("#exportMenu").hidden = true;
-          $("#exportTrigger").setAttribute("aria-expanded","false");
-        }
+        if (!$("#exportMenu").hidden && !e.target.closest(".export-switcher")) closeExportMenu();
       });
       document.addEventListener("keydown",e => {
         if (e.key === "Escape" && !$("#importModal").hidden) closeImportModal();
         if (e.key === "Escape" && !$("#apiModal").hidden) closeApiModal();
         if (e.key === "Escape" && !$("#letterheadModal").hidden) closeLetterheadModal();
         if (e.key === "Escape" && !$("#confirmModal").hidden) closeConfirmModal(false);
-        if (e.key === "Escape" && !$("#historyMenu").hidden) closeHistoryMenu();
-        if (e.key === "Escape" && !$("#importMenu").hidden) closeImportMenu();
-        if (e.key === "Escape" && !$("#settingsMenu").hidden) closeSettingsMenu();
+        if (e.key === "Escape") [closeHistoryMenu,closeImportMenu,closeSettingsMenu,closeExportMenu].forEach(close => close());
       });
       $("#taskTrigger").addEventListener("click",() => {
         $("#taskMenu").hidden = !$("#taskMenu").hidden;
@@ -2474,20 +2557,13 @@ ${text}`;
         if (file) restoreTasks(file);
         e.target.value = "";
       });
-      $("#closeImportBtn").addEventListener("click",closeImportModal);
-      $("#cancelImportBtn").addEventListener("click",closeImportModal);
+      ["closeImportBtn","cancelImportBtn"].forEach(id => $(`#${id}`).addEventListener("click",closeImportModal));
       $("#startImportBtn").addEventListener("click",startReferenceImport);
       $("#confirmImportBtn").addEventListener("click",confirmReferenceImport);
-      $("#importModal").addEventListener("click",e => {
-        if (e.target === $("#importModal")) closeImportModal();
-      });
       $("#closeApiBtn").addEventListener("click",closeApiModal);
-      $("#apiModal").addEventListener("click",e => {
-        if (e.target === $("#apiModal")) closeApiModal();
-      });
       $("#closeLetterheadBtn").addEventListener("click",closeLetterheadModal);
-      $("#letterheadModal").addEventListener("click",e => {
-        if (e.target === $("#letterheadModal")) closeLetterheadModal();
+      [["importModal",closeImportModal],["apiModal",closeApiModal],["letterheadModal",closeLetterheadModal],["confirmModal",() => closeConfirmModal(false)]].forEach(([id,close]) => {
+        $(`#${id}`).addEventListener("click",e => { if (e.target === $(`#${id}`)) close(); });
       });
       $("#letterheadFileInput").addEventListener("change",e => {
         const file = e.target.files?.[0];
@@ -2512,42 +2588,23 @@ ${text}`;
       $("#detectLetterheadBtn").addEventListener("click",redetectLetterhead);
       $("#removeLetterheadBtn").addEventListener("click",removeLetterhead);
       $("#saveLetterheadBtn").addEventListener("click",saveLetterheadFromModal);
-      $("#closeConfirmBtn").addEventListener("click",() => closeConfirmModal(false));
-      $("#cancelConfirmBtn").addEventListener("click",() => closeConfirmModal(false));
+      ["closeConfirmBtn","cancelConfirmBtn"].forEach(id => $(`#${id}`).addEventListener("click",() => closeConfirmModal(false)));
       $("#acceptConfirmBtn").addEventListener("click",() => closeConfirmModal(true));
-      $("#confirmModal").addEventListener("click",e => {
-        if (e.target === $("#confirmModal")) closeConfirmModal(false);
-      });
       $("#saveDeepseekBtn").addEventListener("click",saveDeepseekFromForm);
       $("#testDeepseekBtn").addEventListener("click",testDeepseekFromForm);
       $("#refreshBalanceBtn").addEventListener("click",refreshBalanceFromForm);
       $("#clearDeepseekBtn").addEventListener("click",clearDeepseekBinding);
-      $("#historyTrigger").addEventListener("click",() => {
-        const open = $("#historyMenu").hidden;
-        $("#historyMenu").hidden = !open;
-        $("#historyTrigger").setAttribute("aria-expanded",String(open));
-      });
+      $("#historyTrigger").addEventListener("click",() => toggleMenu("historyTrigger","historyMenu"));
       function closeHistoryMenu() {
-        $("#historyMenu").hidden = true;
-        $("#historyTrigger").setAttribute("aria-expanded","false");
+        setMenu("historyTrigger","historyMenu",false);
       }
-      $("#importTrigger").addEventListener("click",() => {
-        const open = $("#importMenu").hidden;
-        $("#importMenu").hidden = !open;
-        $("#importTrigger").setAttribute("aria-expanded",String(open));
-      });
+      $("#importTrigger").addEventListener("click",() => toggleMenu("importTrigger","importMenu"));
       function closeImportMenu() {
-        $("#importMenu").hidden = true;
-        $("#importTrigger").setAttribute("aria-expanded","false");
+        setMenu("importTrigger","importMenu",false);
       }
-      $("#settingsTrigger").addEventListener("click",() => {
-        const open = $("#settingsMenu").hidden;
-        $("#settingsMenu").hidden = !open;
-        $("#settingsTrigger").setAttribute("aria-expanded",String(open));
-      });
+      $("#settingsTrigger").addEventListener("click",() => toggleMenu("settingsTrigger","settingsMenu"));
       function closeSettingsMenu() {
-        $("#settingsMenu").hidden = true;
-        $("#settingsTrigger").setAttribute("aria-expanded","false");
+        setMenu("settingsTrigger","settingsMenu",false);
       }
       $("#undoBtn").addEventListener("click",() => { closeHistoryMenu(); undo(); });
       $("#resetBtn").addEventListener("click",async () => {
@@ -2557,14 +2614,9 @@ ${text}`;
         data = clone(example); renderAll(); save(); toast("已恢复最新版示例");
       });
       $("#addDayBottom").addEventListener("click",addDay);
-      $("#exportTrigger").addEventListener("click",() => {
-        const open = $("#exportMenu").hidden;
-        $("#exportMenu").hidden = !open;
-        $("#exportTrigger").setAttribute("aria-expanded",String(open));
-      });
+      $("#exportTrigger").addEventListener("click",() => toggleMenu("exportTrigger","exportMenu"));
       function closeExportMenu() {
-        $("#exportMenu").hidden = true;
-        $("#exportTrigger").setAttribute("aria-expanded","false");
+        setMenu("exportTrigger","exportMenu",false);
       }
       $("#exportPdfWithBgBtn").addEventListener("click",() => { closeExportMenu(); exportPdf(true); });
       $("#exportPdfPlainBtn").addEventListener("click",() => { closeExportMenu(); exportPdf(false); });
