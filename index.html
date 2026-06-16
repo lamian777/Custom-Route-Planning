@@ -235,14 +235,15 @@
     }
     .preview-quote-details h3 { margin: 0 0 8px; font-size: 15px; }
     .quote-toolbar { margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    .quote-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .quote-table-wrap { overflow-x: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
     .quote-table, .preview-quote-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .quote-table { min-width: 820px; font-size: 12px; }
+    .quote-table { min-width: 0; font-size: 12px; }
     .quote-table th, .quote-table td, .preview-quote-table th, .preview-quote-table td {
       border: 1px solid var(--soft-line); vertical-align: middle; text-align: center;
     }
     .quote-table th { padding: 8px 7px; color: var(--muted); background: var(--soft); font-weight: 700; }
     .quote-table td { padding: 5px; }
+    .quote-table th, .quote-table td { overflow-wrap: anywhere; }
     .quote-table input, .quote-table textarea, .quote-note {
       width: 100%; min-height: 34px; padding: 7px 8px; border: 1px solid transparent; border-radius: 7px; background: transparent;
       resize: none; font-size: 12px; text-align: center;
@@ -402,6 +403,14 @@
       body.preview-mode .preview-panel { display: block; }
       .preview-shell { min-height: 0; padding: 28px 22px; border-radius: 16px; }
       .letterhead-layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 1180px) {
+      .quote-table { font-size: 11px; }
+      .quote-table th { padding: 7px 4px; }
+      .quote-table td { padding: 4px; }
+      .quote-table input, .quote-table textarea, .quote-note { padding: 6px 5px; font-size: 11px; }
+      .quote-project-cell .quote-cell-text { padding-right: 18px; }
+      .quote-delete { right: 2px; width: 16px; min-height: 16px; font-size: 13px; }
     }
     @media (hover: none) {
       .summary-delete { opacity: 1; visibility: visible; pointer-events: auto; }
