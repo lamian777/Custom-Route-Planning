@@ -234,7 +234,10 @@
       background: #fff8fa; break-inside: avoid;
     }
     .preview-quote-details h3 { margin: 0 0 8px; font-size: 15px; }
-    .quote-toolbar { margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .quote-toolbar {
+      margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .quote-toolbar-fixed { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
     .quote-table-wrap { overflow-x: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
     .quote-table, .preview-quote-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .quote-table { min-width: 0; font-size: 12px; }
@@ -259,17 +262,30 @@
       color: var(--muted); background: transparent; font-size: 14px; line-height: 1;
     }
     .quote-delete:hover { color: var(--danger); background: #fff1ee; }
-    .quote-fixed-toggle { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 650; }
-    .quote-fixed-toggle input { width: 14px; height: 14px; padding: 0; accent-color: var(--primary); }
+    .quote-fixed-toggle {
+      min-height: 28px; padding: 0 9px; display: inline-flex; align-items: center; gap: 5px;
+      border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: #fff; font-size: 12px; font-weight: 650;
+    }
+    .quote-fixed-toggle input { width: 14px; height: 14px; margin: 0; padding: 0; accent-color: var(--primary); }
     .quote-note-wrap { margin-top: 10px; }
-    .quote-note { min-height: 58px; border-color: var(--line); background: #fff; }
+    .quote-note {
+      min-height: 76px; padding: 11px 12px; border-color: var(--line); background: #fff;
+      resize: vertical; line-height: 1.55; text-align: left;
+    }
     .quote-summary-row td { background: #fff8fa; font-weight: 700; }
     .quote-summary-row .quote-total { color: var(--primary); }
     .preview-quote-table { font-size: 11px; background: #fff; }
     .preview-quote-table th { padding: 6px 5px; background: #f7e4ed; font-weight: 700; text-align: center; }
     .preview-quote-table td { padding: 6px 5px; color: var(--body); overflow-wrap: anywhere; white-space: pre-wrap; }
     .preview-quote-table tfoot td { color: var(--primary); font-weight: 800; }
-    .quote-note-preview { margin-top: 8px; color: var(--primary); font-size: 12px; font-weight: 700; text-align: right; white-space: pre-wrap; }
+    .quote-note-preview {
+      margin-top: 12px; padding: 0; list-style: none; color: var(--ink); font-size: 12px; font-weight: 500; text-align: left;
+      display: grid; gap: 6px;
+    }
+    .quote-note-preview li { position: relative; padding-left: 12px; line-height: 1.5; white-space: pre-wrap; }
+    .quote-note-preview li::before {
+      content: ""; position: absolute; top: .6em; left: 0; width: 4px; height: 4px; border-radius: 50%; background: var(--ink);
+    }
     .notice-list { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px 18px; }
     .notice-item { min-width: 0; display: grid; grid-template-columns: 68px 1fr; gap: 7px; }
     .notice-item dt { color: var(--primary); font-weight: 700; }
@@ -1987,7 +2003,27 @@ ${text}`;
         data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         const quote = data.quoteDetails;
         const totals = calculateQuoteTotals(quote);
+        const fixedRows = [];
+        if (quote.serviceFee.enabled) fixedRows.push(`
+                <tr>
+                  <td>综费</td><td>综合服务费</td><td class="quote-num" id="quoteServiceFeeBase">${formatMoney(totals.subtotal)}</td>
+                  <td><input class="quote-num" id="quoteServiceFeeRate" type="text" inputmode="decimal" data-quote-fixed="serviceFee" value="${esc(quote.serviceFee.rate)}"></td>
+                  <td class="quote-num">1</td><td class="quote-total" id="quoteServiceFeeTotal">${formatMoney(totals.serviceFee)}</td>
+                </tr>`);
+        if (quote.tax.enabled) fixedRows.push(`
+                <tr>
+                  <td>税金</td><td>一般纳税人发票税金</td><td class="quote-num" id="quoteTaxBase">${formatMoney(totals.subtotal + totals.serviceFee)}</td>
+                  <td><input class="quote-num" id="quoteTaxRate" type="text" inputmode="decimal" data-quote-fixed="tax" value="${esc(quote.tax.rate)}"></td>
+                  <td class="quote-num">1</td><td class="quote-total" id="quoteTaxTotal">${formatMoney(totals.tax)}</td>
+                </tr>`);
         return `
+          <div class="quote-toolbar">
+            <button class="btn btn-small" id="addQuoteRowBtn" type="button">＋ 新增普通项</button>
+            <div class="quote-toolbar-fixed">
+              <label class="quote-fixed-toggle" title="勾选后显示综费"><input id="quoteServiceFeeEnabled" type="checkbox" ${quote.serviceFee.enabled ? "checked" : ""}>综费</label>
+              <label class="quote-fixed-toggle" title="勾选后显示税金"><input id="quoteTaxEnabled" type="checkbox" ${quote.tax.enabled ? "checked" : ""}>税金</label>
+            </div>
+          </div>
           <div class="quote-table-wrap">
             <table class="quote-table">
               <colgroup>
@@ -1997,25 +2033,12 @@ ${text}`;
               <tbody>${totals.rows.map((row,index) => quoteEditorRowHtml(row,index,row.total)).join("")}</tbody>
               <tfoot>
                 <tr class="quote-summary-row"><td colspan="5">普通费用小计</td><td class="quote-total" id="quoteSubtotal">${formatMoney(totals.subtotal)}</td></tr>
-                <tr>
-                  <td>综费</td><td>综合服务费</td><td class="quote-num" id="quoteServiceFeeBase">${formatMoney(totals.subtotal)}</td>
-                  <td><input class="quote-num" id="quoteServiceFeeRate" type="text" inputmode="decimal" data-quote-fixed="serviceFee" value="${esc(quote.serviceFee.rate)}"></td>
-                  <td class="quote-num">1</td><td class="quote-total" id="quoteServiceFeeTotal">${formatMoney(totals.serviceFee)}</td>
-                </tr>
-                <tr>
-                  <td>税金</td><td>一般纳税人发票税金</td><td class="quote-num" id="quoteTaxBase">${formatMoney(totals.subtotal + totals.serviceFee)}</td>
-                  <td><input class="quote-num" id="quoteTaxRate" type="text" inputmode="decimal" data-quote-fixed="tax" value="${esc(quote.tax.rate)}"></td>
-                  <td class="quote-num">1</td><td class="quote-total" id="quoteTaxTotal">${formatMoney(totals.tax)}</td>
-                </tr>
+                ${fixedRows.join("")}
                 <tr class="quote-summary-row"><td colspan="5">合计</td><td class="quote-total" id="quoteGrandTotal">${formatMoney(totals.total)}</td></tr>
               </tfoot>
             </table>
           </div>
-          <div class="quote-toolbar">
-            <label class="quote-fixed-toggle"><input id="quoteServiceFeeEnabled" type="checkbox" ${quote.serviceFee.enabled ? "checked" : ""}>添加综费</label>
-            <label class="quote-fixed-toggle"><input id="quoteTaxEnabled" type="checkbox" ${quote.tax.enabled ? "checked" : ""}>添加税金</label>
-          </div>
-          <div class="quote-note-wrap"><textarea class="quote-note" data-quote-note placeholder="优惠、实收等说明可在这里手填，不参与自动计算">${esc(quote.note)}</textarea></div>`;
+          <div class="quote-note-wrap"><textarea class="quote-note" data-quote-note placeholder="每行一项，默认隐藏">${esc(quote.note)}</textarea></div>`;
       }
       function quotePreviewRowHtml(row, total) {
         return `<tr><td>${esc(row.project)}</td><td>${esc(row.content)}</td><td class="quote-num">${esc(row.unitPrice)}</td><td class="quote-num">${esc(row.quantity)}</td><td class="quote-num">${esc(row.times || "1")}</td><td class="quote-total">${formatMoney(total)}</td></tr>`;
@@ -2025,21 +2048,23 @@ ${text}`;
         const totals = calculateQuoteTotals(normalized);
         const rows = totals.rows.filter(row => quoteRowHasContent(row) || row.total);
         const fixedRows = [];
+        const noteLines = lines(normalized.note).filter(Boolean);
         if (totals.serviceEnabled) fixedRows.push({project:"综费",content:"综合服务费",unitPrice:formatMoney(totals.subtotal),quantity:totals.serviceRate,times:"1",remark:"",total:totals.serviceFee});
         if (totals.taxEnabled) fixedRows.push({project:"税金",content:"一般纳税人发票税金",unitPrice:formatMoney(totals.subtotal + totals.serviceFee),quantity:totals.taxRate,times:"1",remark:"",total:totals.tax});
-        if (!normalized.visible || (!rows.length && !fixedRows.length && !normalized.note.trim())) return "";
+        const hasTable = rows.length || fixedRows.length;
+        if (!normalized.visible || (!hasTable && !noteLines.length)) return "";
         return `
           <section class="preview-quote-details">
             <h3>报价明细</h3>
-            <table class="preview-quote-table">
+            ${hasTable ? `<table class="preview-quote-table">
               <colgroup>
                 <col style="width:14%"><col style="width:40%"><col style="width:12%"><col style="width:12%"><col style="width:10%"><col style="width:12%">
               </colgroup>
               <thead><tr><th>项目</th><th>内容</th><th>单价（元）</th><th>数量</th><th>次数</th><th>总价（元）</th></tr></thead>
               <tbody>${[...rows,...fixedRows].map(row => quotePreviewRowHtml(row,row.total)).join("")}</tbody>
               <tfoot><tr><td colspan="5">合计</td><td class="quote-total">${formatMoney(totals.total)}</td></tr></tfoot>
-            </table>
-            ${normalized.note.trim() ? `<div class="quote-note-preview">${esc(normalized.note)}</div>` : ""}
+            </table>` : ""}
+            ${noteLines.length ? `<ul class="quote-note-preview">${noteLines.map(line => `<li>${esc(line)}</li>`).join("")}</ul>` : ""}
           </section>`;
       }
       function autosizeQuoteTextareas(scope = document) {
@@ -2297,8 +2322,7 @@ ${text}`;
         data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         if (e.target.id === "quoteServiceFeeEnabled") data.quoteDetails.serviceFee.enabled = e.target.checked;
         if (e.target.id === "quoteTaxEnabled") data.quoteDetails.tax.enabled = e.target.checked;
-        updateQuoteComputed();
-        renderPreview(); save();
+        renderAll(); save();
       });
       $("#highlightsInput").addEventListener("input", e => { remember(); data.highlights = e.target.value; renderPreview(); save(); });
       $("#standardsInput").addEventListener("input", e => { remember(); data.standards = lines(e.target.value); renderPreview(); save(); });
