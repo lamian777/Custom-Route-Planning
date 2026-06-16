@@ -89,6 +89,50 @@ test("marks three departure notice fields as required", () => {
 });
 
 test("hides optional departure notice fields until they have content", () => {
-  assert.match(html, /const requiredNoticeFields = new Set\(\["guide","vehicle","meeting"\]\)/);
+  assert.match(html, /const requiredNoticeFields = new Set\(noticeFields\.filter/);
   assert.match(html, /noticeFields\.filter\(\(\[field\]\) => requiredNoticeFields\.has\(field\) \|\| notice\[field\]\)/);
+});
+
+test("provides editable quote table controls and automatic totals", () => {
+  assert.match(html, /id="quoteTableEditor"/);
+  assert.match(html, /id="addQuoteRowBtn"/);
+  assert.match(html, /id="quoteServiceFeeEnabled"/);
+  assert.match(html, /id="quoteTaxEnabled"/);
+  assert.match(html, /function quoteRowTotal\(/);
+  assert.match(html, /function calculateQuoteTotals\(/);
+  assert.match(html, /serviceFee:\{enabled:false,rate:"8%"\}/);
+  assert.match(html, /tax:\{enabled:false,rate:"6%"\}/);
+});
+
+test("calculates service fee before tax and renders quote details as a table", () => {
+  assert.match(html, /const serviceFee = serviceEnabled \? roundMoney\(subtotal \* parsePercent\(serviceRate\)\) : 0/);
+  assert.match(html, /const tax = taxEnabled \? roundMoney\(\(subtotal \+ serviceFee\) \* parsePercent\(taxRate\)\) : 0/);
+  assert.match(html, /class="quote-table"/);
+  assert.match(html, /class="preview-quote-table"/);
+});
+
+test("allows quote text cells to wrap and grow with full content", () => {
+  assert.match(html, /function quoteTextCellHtml\(/);
+  assert.match(html, /<textarea class="quote-cell-text"[^>]*data-quote-field="\$\{field\}">/);
+  assert.doesNotMatch(html, /placeholder="项目"/);
+  assert.doesNotMatch(html, /placeholder="费用内容"/);
+  assert.doesNotMatch(html, /data-quote-field="unitPrice"[^>]*placeholder=/);
+  assert.match(html, /function autosizeQuoteTextareas\(/);
+  assert.match(html, /\.preview-quote-table td \{[^}]*white-space: pre-wrap/s);
+});
+
+test("centers quote cells and gives content columns more room", () => {
+  assert.match(html, /\.quote-table th, \.quote-table td, \.preview-quote-table th, \.preview-quote-table td \{[^}]*text-align: center/s);
+  assert.match(html, /\.quote-table input, \.quote-table textarea, \.quote-note \{[^}]*text-align: center/s);
+  assert.match(html, /<col style="width:14%"><col style="width:40%"><col style="width:12%"><col style="width:12%"><col style="width:10%"><col style="width:12%">/);
+});
+
+test("removes the remark column from quote tables", () => {
+  assert.doesNotMatch(html, /<th>备注<\/th>/);
+  assert.doesNotMatch(html, /quoteTextCellHtml\(row,index,"remark","备注"\)/);
+});
+
+test("labels quote amount headers with yuan", () => {
+  assert.match(html, /<th>单价（元）<\/th>/);
+  assert.match(html, /<th>总价（元）<\/th>/);
 });

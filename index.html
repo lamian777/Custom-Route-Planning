@@ -234,8 +234,41 @@
       background: #fff8fa; break-inside: avoid;
     }
     .preview-quote-details h3 { margin: 0 0 8px; font-size: 15px; }
-    .preview-quote-details ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; color: var(--body); }
-    .preview-quote-details li { overflow-wrap: anywhere; word-break: break-word; }
+    .quote-toolbar { margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .quote-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .quote-table, .preview-quote-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .quote-table { min-width: 820px; font-size: 12px; }
+    .quote-table th, .quote-table td, .preview-quote-table th, .preview-quote-table td {
+      border: 1px solid var(--soft-line); vertical-align: middle; text-align: center;
+    }
+    .quote-table th { padding: 8px 7px; color: var(--muted); background: var(--soft); font-weight: 700; }
+    .quote-table td { padding: 5px; }
+    .quote-table input, .quote-table textarea, .quote-note {
+      width: 100%; min-height: 34px; padding: 7px 8px; border: 1px solid transparent; border-radius: 7px; background: transparent;
+      resize: none; font-size: 12px; text-align: center;
+    }
+    .quote-table input:focus, .quote-table textarea:focus, .quote-note:focus { border-color: var(--ink); background: #fff; box-shadow: 0 0 0 1px var(--ink); }
+    .quote-cell-text { overflow: hidden; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+    .quote-table .quote-num, .quote-table .quote-total, .preview-quote-table .quote-num, .preview-quote-table .quote-total { text-align: center; }
+    .quote-total { font-weight: 700; }
+    .quote-project-cell { position: relative; }
+    .quote-project-cell .quote-cell-text { padding-right: 24px; }
+    .quote-delete {
+      position: absolute; top: 4px; right: 4px; width: 18px; min-height: 18px; padding: 0; border: 0; border-radius: 999px;
+      color: var(--muted); background: transparent; font-size: 14px; line-height: 1;
+    }
+    .quote-delete:hover { color: var(--danger); background: #fff1ee; }
+    .quote-fixed-toggle { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .quote-fixed-toggle input { width: 14px; height: 14px; padding: 0; accent-color: var(--primary); }
+    .quote-note-wrap { margin-top: 10px; }
+    .quote-note { min-height: 58px; border-color: var(--line); background: #fff; }
+    .quote-summary-row td { background: #fff8fa; font-weight: 700; }
+    .quote-summary-row .quote-total { color: var(--primary); }
+    .preview-quote-table { font-size: 11px; background: #fff; }
+    .preview-quote-table th { padding: 6px 5px; background: #f7e4ed; font-weight: 700; text-align: center; }
+    .preview-quote-table td { padding: 6px 5px; color: var(--body); overflow-wrap: anywhere; white-space: pre-wrap; }
+    .preview-quote-table tfoot td { color: var(--primary); font-weight: 800; }
+    .quote-note-preview { margin-top: 8px; color: var(--primary); font-size: 12px; font-weight: 700; text-align: right; white-space: pre-wrap; }
     .notice-list { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px 18px; }
     .notice-item { min-width: 0; display: grid; grid-template-columns: 68px 1fr; gap: 7px; }
     .notice-item dt { color: var(--primary); font-weight: 700; }
@@ -540,7 +573,10 @@
               </label>
             </summary>
             <div class="day-body">
-              <label class="field"><span>报价明细</span><textarea id="quoteDetailsInput" rows="5" placeholder="每项一行，默认隐藏"></textarea></label>
+              <div class="quote-toolbar">
+                <button class="btn btn-small" id="addQuoteRowBtn" type="button">＋ 新增普通项</button>
+              </div>
+              <div id="quoteTableEditor"></div>
             </div>
           </details>
         </section>
@@ -770,6 +806,19 @@
         ],
         "quoteDetails": {
                 "content": "机票：\n高铁：\n房费：\n会议：\n车费：\n餐费：\n门票：\n导游：\n全陪：\n保险：\n其他：\n合计：",
+                "rows": [
+                        {"type":"item","project":"航班","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
+                        {"type":"item","project":"交通","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
+                        {"type":"item","project":"酒店","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
+                        {"type":"item","project":"景点","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
+                        {"type":"item","project":"餐饮","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
+                        {"type":"item","project":"人工","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
+                        {"type":"item","project":"保险","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
+                        {"type":"item","project":"其他","content":"","unitPrice":"","quantity":"","times":"1","remark":""}
+                ],
+                "serviceFee":{"enabled":false,"rate":"8%"},
+                "tax":{"enabled":false,"rate":"6%"},
+                "note":"",
                 "visible": false
         },
         "standards": [
@@ -796,6 +845,7 @@
         ["flight","航班信息",false,true],["weather","当地天气",false,true],["notes","注意事项",false,true]
       ];
       const requiredNoticeFields = new Set(noticeFields.filter(([, , required]) => required).map(([field]) => field));
+      const defaultQuoteProjects = ["航班","交通","酒店","景点","餐饮","人工","保险","其他"];
       const $ = s => document.querySelector(s);
       const clone = value => JSON.parse(JSON.stringify(value));
       const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
@@ -819,6 +869,83 @@
       let letterheadBlob = null;
       function uid() {
         return `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+      }
+      function blankQuoteRow(project = "") {
+        return {type:"item",project,content:"",unitPrice:"",quantity:"",times:"1",remark:""};
+      }
+      function defaultQuoteRows() {
+        return defaultQuoteProjects.map(project => blankQuoteRow(project));
+      }
+      function normalizeQuoteRow(row = {}) {
+        return {
+          type:"item",
+          project:String(row.project || ""),
+          content:String(row.content || ""),
+          unitPrice:String(row.unitPrice ?? ""),
+          quantity:String(row.quantity ?? ""),
+          times:String(row.times ?? "1"),
+          remark:String(row.remark || "")
+        };
+      }
+      function legacyQuoteRows(content = "") {
+        return lines(content).filter(line => !/^合计[:：]/.test(line)).map(line => {
+          const match = line.match(/^([^:：]+)[:：]\s*(.*)$/);
+          const row = blankQuoteRow(match ? match[1].trim() : "");
+          row.content = match ? match[2].trim() : line;
+          return row;
+        });
+      }
+      function normalizeQuoteDetails(value = {}) {
+        const quote = value && typeof value === "object" ? value : {};
+        const rows = Array.isArray(quote.rows) ? quote.rows.map(normalizeQuoteRow) : legacyQuoteRows(quote.content);
+        return {
+          visible:Boolean(quote.visible),
+          content:String(quote.content || ""),
+          rows:rows.length ? rows : defaultQuoteRows(),
+          serviceFee:{enabled:Boolean(quote.serviceFee?.enabled),rate:String(quote.serviceFee?.rate || "8%")},
+          tax:{enabled:Boolean(quote.tax?.enabled),rate:String(quote.tax?.rate || "6%")},
+          note:String(quote.note || "")
+        };
+      }
+      function parseMoney(value) {
+        const text = String(value ?? "").replace(/[,\s￥¥元]/g,"");
+        const number = Number(text);
+        return Number.isFinite(number) ? number : 0;
+      }
+      function parsePercent(value) {
+        const text = String(value ?? "").trim().replace("%","");
+        const number = Number(text);
+        if (!Number.isFinite(number)) return 0;
+        return String(value ?? "").includes("%") || Math.abs(number) > 1 ? number / 100 : number;
+      }
+      function roundMoney(value) {
+        return Math.round((Number(value) || 0) + Number.EPSILON);
+      }
+      function formatMoney(value) {
+        const number = Number(value) || 0;
+        return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/,"");
+      }
+      function quoteRowTotal(row) {
+        const unitPrice = parseMoney(row.unitPrice);
+        const quantityText = String(row.quantity ?? "").trim();
+        const quantity = quantityText.includes("%") ? parsePercent(quantityText) : parseMoney(quantityText);
+        const times = parseMoney(row.times || "1");
+        return roundMoney(unitPrice * quantity * times);
+      }
+      function quoteRowHasContent(row) {
+        return Boolean(row.total) || ["content","unitPrice","quantity"].some(key => String(row[key] ?? "").trim());
+      }
+      function calculateQuoteTotals(quote) {
+        const normalized = normalizeQuoteDetails(quote);
+        const rows = normalized.rows.map(row => ({...row,total:quoteRowTotal(row)}));
+        const subtotal = rows.reduce((sum,row) => sum + row.total,0);
+        const serviceEnabled = Boolean(normalized.serviceFee.enabled);
+        const serviceRate = normalized.serviceFee.rate || "8%";
+        const serviceFee = serviceEnabled ? roundMoney(subtotal * parsePercent(serviceRate)) : 0;
+        const taxEnabled = Boolean(normalized.tax.enabled);
+        const taxRate = normalized.tax.rate || "6%";
+        const tax = taxEnabled ? roundMoney((subtotal + serviceFee) * parsePercent(taxRate)) : 0;
+        return {rows,subtotal,serviceEnabled,serviceRate,serviceFee,taxEnabled,taxRate,tax,total:subtotal + serviceFee + tax};
       }
       function loadDeepseekSettings() {
         try {
@@ -1018,7 +1145,7 @@
         return {
           title:"", highlights:"",
           departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
-          quoteDetails:{visible:false,content:""},
+          quoteDetails:{visible:false,content:"",rows:defaultQuoteRows(),serviceFee:{enabled:false,rate:"8%"},tax:{enabled:false,rate:"6%"},note:""},
           days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",lodgingUrl:"",breakfast:"",lunch:"",dinner:"",flight:""}],
           standards:clone(example.standards), notes:clone(example.notes), _heights:clone(data?._heights || {})
         };
@@ -1834,6 +1961,101 @@ ${text}`;
         if (!href || !/^https?:\/\//i.test(href)) return label;
         return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
       }
+      function quoteTextCellHtml(row, index, field) {
+        return `<textarea class="quote-cell-text" rows="1" data-quote-index="${index}" data-quote-field="${field}">${esc(row[field])}</textarea>`;
+      }
+      function quoteEditorRowHtml(row, index, total) {
+        return `<tr>
+          <td class="quote-project-cell">${quoteTextCellHtml(row,index,"project")}<button class="quote-delete" type="button" data-delete-quote-row="${index}" aria-label="删除该报价项" title="删除">×</button></td>
+          <td>${quoteTextCellHtml(row,index,"content")}</td>
+          <td><input class="quote-num" type="text" inputmode="decimal" data-quote-index="${index}" data-quote-field="unitPrice" value="${esc(row.unitPrice)}"></td>
+          <td><input class="quote-num" type="text" inputmode="decimal" data-quote-index="${index}" data-quote-field="quantity" value="${esc(row.quantity)}"></td>
+          <td><input class="quote-num" type="text" inputmode="decimal" data-quote-index="${index}" data-quote-field="times" value="${esc(row.times)}"></td>
+          <td class="quote-total" data-quote-row-total="${index}">${formatMoney(total)}</td>
+        </tr>`;
+      }
+      function renderQuoteEditor() {
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
+        const quote = data.quoteDetails;
+        const totals = calculateQuoteTotals(quote);
+        return `
+          <div class="quote-table-wrap">
+            <table class="quote-table">
+              <colgroup>
+                <col style="width:14%"><col style="width:40%"><col style="width:12%"><col style="width:12%"><col style="width:10%"><col style="width:12%">
+              </colgroup>
+              <thead><tr><th>项目</th><th>内容</th><th>单价（元）</th><th>数量</th><th>次数</th><th>总价（元）</th></tr></thead>
+              <tbody>${totals.rows.map((row,index) => quoteEditorRowHtml(row,index,row.total)).join("")}</tbody>
+              <tfoot>
+                <tr class="quote-summary-row"><td colspan="5">普通费用小计</td><td class="quote-total" id="quoteSubtotal">${formatMoney(totals.subtotal)}</td></tr>
+                <tr>
+                  <td>综费</td><td>综合服务费</td><td class="quote-num" id="quoteServiceFeeBase">${formatMoney(totals.subtotal)}</td>
+                  <td><input class="quote-num" id="quoteServiceFeeRate" type="text" inputmode="decimal" data-quote-fixed="serviceFee" value="${esc(quote.serviceFee.rate)}"></td>
+                  <td class="quote-num">1</td><td class="quote-total" id="quoteServiceFeeTotal">${formatMoney(totals.serviceFee)}</td>
+                </tr>
+                <tr>
+                  <td>税金</td><td>一般纳税人发票税金</td><td class="quote-num" id="quoteTaxBase">${formatMoney(totals.subtotal + totals.serviceFee)}</td>
+                  <td><input class="quote-num" id="quoteTaxRate" type="text" inputmode="decimal" data-quote-fixed="tax" value="${esc(quote.tax.rate)}"></td>
+                  <td class="quote-num">1</td><td class="quote-total" id="quoteTaxTotal">${formatMoney(totals.tax)}</td>
+                </tr>
+                <tr class="quote-summary-row"><td colspan="5">合计</td><td class="quote-total" id="quoteGrandTotal">${formatMoney(totals.total)}</td></tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="quote-toolbar">
+            <label class="quote-fixed-toggle"><input id="quoteServiceFeeEnabled" type="checkbox" ${quote.serviceFee.enabled ? "checked" : ""}>添加综费</label>
+            <label class="quote-fixed-toggle"><input id="quoteTaxEnabled" type="checkbox" ${quote.tax.enabled ? "checked" : ""}>添加税金</label>
+          </div>
+          <div class="quote-note-wrap"><textarea class="quote-note" data-quote-note placeholder="优惠、实收等说明可在这里手填，不参与自动计算">${esc(quote.note)}</textarea></div>`;
+      }
+      function quotePreviewRowHtml(row, total) {
+        return `<tr><td>${esc(row.project)}</td><td>${esc(row.content)}</td><td class="quote-num">${esc(row.unitPrice)}</td><td class="quote-num">${esc(row.quantity)}</td><td class="quote-num">${esc(row.times || "1")}</td><td class="quote-total">${formatMoney(total)}</td></tr>`;
+      }
+      function renderQuoteDetailsPreview(quote) {
+        const normalized = normalizeQuoteDetails(quote);
+        const totals = calculateQuoteTotals(normalized);
+        const rows = totals.rows.filter(row => quoteRowHasContent(row) || row.total);
+        const fixedRows = [];
+        if (totals.serviceEnabled) fixedRows.push({project:"综费",content:"综合服务费",unitPrice:formatMoney(totals.subtotal),quantity:totals.serviceRate,times:"1",remark:"",total:totals.serviceFee});
+        if (totals.taxEnabled) fixedRows.push({project:"税金",content:"一般纳税人发票税金",unitPrice:formatMoney(totals.subtotal + totals.serviceFee),quantity:totals.taxRate,times:"1",remark:"",total:totals.tax});
+        if (!normalized.visible || (!rows.length && !fixedRows.length && !normalized.note.trim())) return "";
+        return `
+          <section class="preview-quote-details">
+            <h3>报价明细</h3>
+            <table class="preview-quote-table">
+              <colgroup>
+                <col style="width:14%"><col style="width:40%"><col style="width:12%"><col style="width:12%"><col style="width:10%"><col style="width:12%">
+              </colgroup>
+              <thead><tr><th>项目</th><th>内容</th><th>单价（元）</th><th>数量</th><th>次数</th><th>总价（元）</th></tr></thead>
+              <tbody>${[...rows,...fixedRows].map(row => quotePreviewRowHtml(row,row.total)).join("")}</tbody>
+              <tfoot><tr><td colspan="5">合计</td><td class="quote-total">${formatMoney(totals.total)}</td></tr></tfoot>
+            </table>
+            ${normalized.note.trim() ? `<div class="quote-note-preview">${esc(normalized.note)}</div>` : ""}
+          </section>`;
+      }
+      function autosizeQuoteTextareas(scope = document) {
+        scope.querySelectorAll(".quote-cell-text").forEach(textarea => {
+          textarea.style.height = "auto";
+          textarea.style.height = `${textarea.scrollHeight + 2}px`;
+        });
+      }
+      function updateQuoteComputed() {
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
+        const totals = calculateQuoteTotals(data.quoteDetails);
+        totals.rows.forEach((row,index) => {
+          const cell = document.querySelector(`[data-quote-row-total="${index}"]`);
+          if (cell) cell.textContent = formatMoney(row.total);
+        });
+        const serviceBase = $("#quoteServiceFeeBase"), serviceTotal = $("#quoteServiceFeeTotal");
+        const taxBase = $("#quoteTaxBase"), taxTotal = $("#quoteTaxTotal");
+        if ($("#quoteSubtotal")) $("#quoteSubtotal").textContent = formatMoney(totals.subtotal);
+        if (serviceBase) serviceBase.textContent = formatMoney(totals.subtotal);
+        if (serviceTotal) serviceTotal.textContent = formatMoney(totals.serviceFee);
+        if (taxBase) taxBase.textContent = formatMoney(totals.subtotal + totals.serviceFee);
+        if (taxTotal) taxTotal.textContent = formatMoney(totals.tax);
+        if ($("#quoteGrandTotal")) $("#quoteGrandTotal").textContent = formatMoney(totals.total);
+        autosizeQuoteTextareas($("#quoteTableEditor") || document);
+      }
       function renderEditor(openIndex = null) {
         $("#titleInput").value = data.title || "";
         data.departureNotice ||= {visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""};
@@ -1850,12 +2072,13 @@ ${text}`;
         applyGlobalHeight("standardsInput");
         $("#notesInput").value = (data.notes || []).join("\n");
         applyGlobalHeight("notesInput");
-        data.quoteDetails ||= {visible:false,content:""};
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         const quoteVisible = Boolean(data.quoteDetails.visible);
         $("#quoteDetailsVisible").checked = quoteVisible;
         $("#quoteDetailsSummary").classList.toggle("notice-summary-active",quoteVisible);
         $("#quoteDetailsSummary").classList.toggle("notice-summary-muted",!quoteVisible);
-        $("#quoteDetailsInput").value = data.quoteDetails.content || "";
+        $("#quoteTableEditor").innerHTML = renderQuoteEditor();
+        autosizeQuoteTextareas($("#quoteTableEditor"));
         $("#dayCount").textContent = `共 ${data.days.length} 天`;
         $("#daysEditor").innerHTML = data.days.length ? data.days.map((day,index) => `
           <details class="day-card" ${openIndex === index ? "open" : ""}>
@@ -1885,13 +2108,7 @@ ${text}`;
               </div>`).join("")}
             </dl>
           </section>` : "";
-        const quoteDetails = data.quoteDetails || {};
-        const quoteLines = lines(quoteDetails.content);
-        const quoteDetailsPreview = quoteDetails.visible && quoteLines.length ? `
-          <section class="preview-quote-details">
-            <h3>报价明细</h3>
-            <ul>${quoteLines.map(v => `<li>${esc(v)}</li>`).join("")}</ul>
-          </section>` : "";
+        const quoteDetailsPreview = renderQuoteDetailsPreview(data.quoteDetails);
         const days = data.days.map((day,index) => `
           <section class="preview-day">
             <div class="preview-day-label">D${index + 1}</div>
@@ -2024,17 +2241,54 @@ ${text}`;
       $("#quoteDetailsVisible").addEventListener("click", e => e.stopPropagation());
       $("#quoteDetailsVisible").addEventListener("change", e => {
         remember();
-        data.quoteDetails ||= {visible:false,content:""};
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         data.quoteDetails.visible = e.target.checked;
         $("#quoteDetailsSummary").classList.toggle("notice-summary-active",e.target.checked);
         $("#quoteDetailsSummary").classList.toggle("notice-summary-muted",!e.target.checked);
         renderPreview(); save();
         toast(e.target.checked ? "报价明细已显示" : "报价明细已隐藏");
       });
-      $("#quoteDetailsInput").addEventListener("input", e => {
+      $("#addQuoteRowBtn").addEventListener("click",() => {
         remember();
-        data.quoteDetails ||= {visible:false,content:""};
-        data.quoteDetails.content = e.target.value;
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
+        data.quoteDetails.rows.push(blankQuoteRow());
+        renderAll(); save(); toast("已新增报价项");
+      });
+      $("#quoteTableEditor").addEventListener("click", e => {
+        const button = e.target.closest("[data-delete-quote-row]");
+        if (!button) return;
+        remember();
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
+        data.quoteDetails.rows.splice(Number(button.dataset.deleteQuoteRow),1);
+        if (!data.quoteDetails.rows.length) data.quoteDetails.rows.push(blankQuoteRow());
+        renderAll(); save(); toast("已删除报价项");
+      });
+      $("#quoteTableEditor").addEventListener("input", e => {
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
+        const rowInput = e.target.closest("[data-quote-field]");
+        const fixedInput = e.target.closest("[data-quote-fixed]");
+        const noteInput = e.target.closest("[data-quote-note]");
+        if (!rowInput && !fixedInput && !noteInput) return;
+        remember();
+        if (rowInput) {
+          const index = Number(rowInput.dataset.quoteIndex);
+          const field = rowInput.dataset.quoteField;
+          if (data.quoteDetails.rows[index]) data.quoteDetails.rows[index][field] = rowInput.value;
+        } else if (fixedInput) {
+          data.quoteDetails[fixedInput.dataset.quoteFixed].rate = fixedInput.value;
+        } else if (noteInput) {
+          data.quoteDetails.note = noteInput.value;
+        }
+        updateQuoteComputed();
+        renderPreview(); save();
+      });
+      $("#quoteTableEditor").addEventListener("change", e => {
+        if (e.target.id !== "quoteServiceFeeEnabled" && e.target.id !== "quoteTaxEnabled") return;
+        remember();
+        data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
+        if (e.target.id === "quoteServiceFeeEnabled") data.quoteDetails.serviceFee.enabled = e.target.checked;
+        if (e.target.id === "quoteTaxEnabled") data.quoteDetails.tax.enabled = e.target.checked;
+        updateQuoteComputed();
         renderPreview(); save();
       });
       $("#highlightsInput").addEventListener("input", e => { remember(); data.highlights = e.target.value; renderPreview(); save(); });
