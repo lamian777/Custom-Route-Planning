@@ -113,6 +113,7 @@
     .field { display: block; margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
     .field span { display: block; margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .field span.section-title { margin-bottom: 10px; color: var(--ink); font-size: 15px; font-weight: 650; }
     .field .required-mark { margin-right: 3px; color: var(--primary); font-weight: 800; }
     input, textarea, select {
       width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
@@ -154,15 +155,16 @@
     .calendar-actions button:disabled { opacity: .4; cursor: not-allowed; }
     .day-card {
       margin-bottom: 12px; border: 1px solid var(--line); border-radius: var(--radius);
-      background: var(--canvas); overflow: hidden; transition: opacity .15s ease, transform .15s ease, border-color .15s ease;
+      background: var(--canvas); overflow: hidden; transition: opacity .15s ease, transform .15s ease, border-color .15s ease, background-color .15s ease;
     }
     .day-card.dragging { opacity: .55; border-color: var(--primary); transform: scale(.985); }
     .day-card.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px #ffd1da; }
-    .day-card[open] { box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+    .day-card[open] { border-color: #c7cbd1; background: #e3e5e8; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
     .day-card summary {
       padding: 13px 14px; display: flex; align-items: center; gap: 10px;
-      list-style: none; cursor: pointer; user-select: none;
+      list-style: none; cursor: pointer; user-select: none; transition: background-color .15s ease;
     }
+    .day-card[open] summary { background: #dde0e4; }
     .day-card summary::-webkit-details-marker { display: none; }
     .day-card summary::after { content: "⌄"; flex: none; color: var(--muted); font-size: 17px; }
     .day-card[open] summary::after { transform: rotate(180deg); }
@@ -213,10 +215,14 @@
     }
     .preview-highlights h3 { margin: 0 0 7px; color: var(--ink); font-size: 15px; }
     .preview-highlights ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
-    .preview-departure-notice {
+    .preview-departure-notice, .preview-quote-details {
       margin: -8px 0 28px; padding: 18px; border: 1px solid #ffd1da; border-radius: var(--radius);
       background: #fff8fa; break-inside: avoid;
     }
+    .preview-quote-details { margin-top: 30px; }
+    .preview-quote-details h3 { margin: 0 0 8px; font-size: 15px; }
+    .preview-quote-details ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; color: var(--body); }
+    .preview-quote-details li { overflow-wrap: anywhere; word-break: break-word; }
     .notice-list { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px 18px; }
     .notice-item { min-width: 0; display: grid; grid-template-columns: 68px 1fr; gap: 7px; }
     .notice-item dt { color: var(--primary); font-weight: 700; }
@@ -463,12 +469,30 @@
         <section class="section">
           <h3 class="section-title">线路标题</h3>
           <label class="field">
-            <span>客户版标题</span>
             <input id="titleInput" maxlength="80" placeholder="例如：重庆、成都双飞6日游">
           </label>
-          <label class="field">
-            <span>行程亮点</span>
-            <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认不显示"></textarea>
+          <details class="day-card notice-card" id="departureNoticeEditor">
+            <summary>
+              <span class="notice-summary"><strong>出团通知</strong><small>填写后显示在标题下方</small></span>
+              <label class="visibility-toggle" title="控制客户版是否显示出团通知">
+                <input id="departureNoticeVisible" type="checkbox">
+                <span>显示</span>
+              </label>
+            </summary>
+            <div class="day-body">
+              <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
+              <div class="grid-2">
+                <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
+                <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
+              </div>
+              <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
+              <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
+              <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
+            </div>
+          </details>
+          <label class="field highlights-field">
+            <span class="section-title">行程亮点</span>
+            <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认隐藏"></textarea>
           </label>
         </section>
 
@@ -481,7 +505,6 @@
         <section class="section">
           <h3 class="section-title">接待标准</h3>
           <label class="field">
-            <span>每行一项</span>
             <textarea id="standardsInput" rows="7"></textarea>
           </label>
         </section>
@@ -489,29 +512,21 @@
         <section class="section">
           <h3 class="section-title">特别说明</h3>
           <label class="field">
-            <span>每行一项</span>
             <textarea id="notesInput" rows="5"></textarea>
           </label>
         </section>
 
         <section class="section">
-          <details class="day-card notice-card" id="departureNoticeEditor">
+          <details class="day-card notice-card" id="quoteDetailsEditor">
             <summary>
-              <span class="notice-summary"><strong>出团通知</strong><small>填写后可选择显示在客户版标题下方</small></span>
-              <label class="visibility-toggle" title="控制客户版是否显示出团通知">
-                <input id="departureNoticeVisible" type="checkbox">
+              <span class="notice-summary"><strong>报价明细</strong><small>填写后显示在特别说明下方</small></span>
+              <label class="visibility-toggle" title="控制客户版是否显示报价明细">
+                <input id="quoteDetailsVisible" type="checkbox">
                 <span>显示</span>
               </label>
             </summary>
             <div class="day-body">
-              <div class="grid-2">
-                <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
-                <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
-              </div>
-              <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
-              <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
-              <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
-              <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
+              <label class="field"><span>报价明细</span><textarea id="quoteDetailsInput" rows="5" placeholder="每项一行，默认隐藏"></textarea></label>
             </div>
           </details>
         </section>
@@ -736,6 +751,10 @@
           "flight": "",
           "weather": "",
           "notes": ""
+        },
+        "quoteDetails": {
+          "visible": false,
+          "content": ""
         },
         "highlights": ""
       };
@@ -973,6 +992,7 @@
         return {
           title:"", highlights:"",
           departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
+          quoteDetails:{visible:false,content:""},
           days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",breakfast:"",lunch:"",dinner:"",flight:""}],
           standards:clone(example.standards), notes:clone(example.notes), _heights:clone(data?._heights || {})
         };
@@ -1762,6 +1782,9 @@ ${text}`;
         applyGlobalHeight("standardsInput");
         $("#notesInput").value = (data.notes || []).join("\n");
         applyGlobalHeight("notesInput");
+        data.quoteDetails ||= {visible:false,content:""};
+        $("#quoteDetailsVisible").checked = Boolean(data.quoteDetails.visible);
+        $("#quoteDetailsInput").value = data.quoteDetails.content || "";
         $("#dayCount").textContent = `共 ${data.days.length} 天`;
         $("#daysEditor").innerHTML = data.days.length ? data.days.map((day,index) => `
           <details class="day-card" ${openIndex === index ? "open" : ""}>
@@ -1775,8 +1798,8 @@ ${text}`;
               <div class="grid-2">${fields.slice(1,3).map(f => fieldHtml(day,index,f)).join("")}</div>
               ${fields.slice(3,5).map(f => fieldHtml(day,index,f)).join("")}
               ${fieldHtml(day,index,fields[5])}
-              ${fieldHtml(day,index,fields[6])}
               <div class="grid-3">${fields.slice(7).map(f => fieldHtml(day,index,f)).join("")}</div>
+              ${fieldHtml(day,index,fields[6])}
             </div>
           </details>`).join("") : `<div class="empty">还没有每日行程，点击“新增一天”开始编辑。</div>`;
         requestAnimationFrame(watchTextareaSizes);
@@ -1784,13 +1807,24 @@ ${text}`;
       function renderPreview() {
         document.title = data.title || "旅行线路定制";
         const notice = data.departureNotice || {};
+        const previewNoticeFields = [
+          ["meeting","集合信息"],["guide","导游信息"],["vehicle","车辆信息"],
+          ["flight","航班信息"],["weather","当地天气"],["notes","注意事项"]
+        ];
         const departureNotice = notice.visible ? `
           <section class="preview-departure-notice">
-            <dl class="notice-list">${noticeFields.filter(([field]) => requiredNoticeFields.has(field) || notice[field]).map(([field,label]) => `
-              <div class="notice-item ${field === "notes" ? "notice-item-wide" : ""}">
+            <dl class="notice-list">${previewNoticeFields.filter(([field]) => requiredNoticeFields.has(field) || notice[field]).map(([field,label]) => `
+              <div class="notice-item ${["meeting","flight","weather","notes"].includes(field) ? "notice-item-wide" : ""}">
                 <dt>${label}</dt><dd>${esc(notice[field] || "待通知")}</dd>
               </div>`).join("")}
             </dl>
+          </section>` : "";
+        const quoteDetails = data.quoteDetails || {};
+        const quoteLines = lines(quoteDetails.content);
+        const quoteDetailsPreview = quoteDetails.visible && quoteLines.length ? `
+          <section class="preview-quote-details">
+            <h3>报价明细</h3>
+            <ul>${quoteLines.map(v => `<li>${esc(v)}</li>`).join("")}</ul>
           </section>` : "";
         const days = data.days.map((day,index) => `
           <section class="preview-day">
@@ -1822,7 +1856,7 @@ ${text}`;
           ${departureNotice}
           ${lines(data.highlights).length ? `<section class="preview-highlights"><h3>行程亮点</h3><ul>${lines(data.highlights).map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : ""}
           <div class="itinerary">${days || `<div class="empty">行程内容待添加</div>`}</div>
-          ${list("接待标准",data.standards)}${list("特别说明",data.notes)}`;
+          ${list("接待标准",data.standards)}${list("特别说明",data.notes)}${quoteDetailsPreview}`;
       }
       function ensureLetterhead() {
         if (letterheadImageUrl) return true;
@@ -1917,6 +1951,20 @@ ${text}`;
         remember();
         data.departureNotice ||= {};
         data.departureNotice[field] = e.target.value;
+        renderPreview(); save();
+      });
+      $("#quoteDetailsVisible").addEventListener("click", e => e.stopPropagation());
+      $("#quoteDetailsVisible").addEventListener("change", e => {
+        remember();
+        data.quoteDetails ||= {visible:false,content:""};
+        data.quoteDetails.visible = e.target.checked;
+        renderPreview(); save();
+        toast(e.target.checked ? "报价明细已显示" : "报价明细已隐藏");
+      });
+      $("#quoteDetailsInput").addEventListener("input", e => {
+        remember();
+        data.quoteDetails ||= {visible:false,content:""};
+        data.quoteDetails.content = e.target.value;
         renderPreview(); save();
       });
       $("#highlightsInput").addEventListener("input", e => { remember(); data.highlights = e.target.value; renderPreview(); save(); });
