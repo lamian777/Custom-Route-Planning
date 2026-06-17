@@ -36,8 +36,52 @@ test("places import and settings controls directly before export and outside the
   assert.doesNotMatch(taskMenu, /id="deepseekSettingsBtn"/);
   assert.doesNotMatch(taskMenu, /id="backupTasksBtn"/);
   assert.doesNotMatch(taskMenu, /id="restoreTasksBtn"/);
-  assert.match(topActions, /id="importTrigger"[^>]*>导入[\s\S]*?id="newBlankTaskBtn"[^>]*>新建空白<\/button>[\s\S]*?id="duplicateTaskBtn"[^>]*>复制当前<\/button>[\s\S]*?id="importReferenceBtn"[^>]*>导入线路<\/button>[\s\S]*?<div class="settings-switcher">/);
+  assert.match(topActions, /id="importTrigger"[^>]*>导入[\s\S]*?id="newBlankTaskBtn"[^>]*>新建空白<\/button>[\s\S]*?id="duplicateTaskBtn"[^>]*>复制当前<\/button>[\s\S]*?<div class="settings-switcher">/);
+  assert.doesNotMatch(topActions, /id="importReferenceBtn"/);
   assert.match(topActions, /id="settingsTrigger"[^>]*>设置[\s\S]*?id="deepseekSettingsBtn"[^>]*>API 设置<\/button>[\s\S]*?id="letterheadSettingsBtn"[^>]*>抬头纸设置<\/button>[\s\S]*?id="backupTasksBtn"[^>]*>备份任务库<\/button>[\s\S]*?id="restoreTasksBtn"[^>]*>恢复任务库<\/button>[\s\S]*?<div class="export-switcher">/);
+});
+
+test("adds customer demand section before title", () => {
+  const titleIndex = html.indexOf('<h3 class="section-title">线路标题</h3>');
+  const demandIndex = html.indexOf('id="customerDemandSection"');
+
+  assert.notEqual(demandIndex, -1);
+  assert.ok(demandIndex < titleIndex);
+  assert.match(html, /id="customerDemandInput"/);
+  assert.match(html, /id="customerReferenceFileInput"/);
+  assert.match(html, /id="recognizeDemandBtn"/);
+  assert.match(html, /id="applyDemandResultBtn"/);
+  assert.match(html, /id="retryDemandRecognitionBtn"/);
+});
+
+test("keeps customer demand controls compact without inline hints", () => {
+  assert.match(html, /class="demand-inline"/);
+  assert.match(html, /id="recognizeDemandBtn"[^>]*>识别<\/button>/);
+  assert.doesNotMatch(html, /id="recognizeDemandBtn"[^>]*>识别需求<\/button>/);
+  assert.doesNotMatch(html, /id="demandProviderHint"/);
+  assert.doesNotMatch(html, /尚未绑定 DeepSeek API，请先打开顶部的/);
+});
+
+test("supports dragging reference itinerary files into a tidy aligned control", () => {
+  assert.match(html, /class="field demand-drop"/);
+  assert.match(html, /<span>参考行程<\/span>/);
+  assert.doesNotMatch(html, /<span>参考行程文件<\/span>/);
+  assert.match(html, /\.demand-inline \{[^}]*grid-template-columns: minmax\(0,1fr\) auto/s);
+  assert.match(html, /\.demand-drop input, \.demand-inline \.btn-primary \{[^}]*height: 50px/s);
+  assert.match(html, /function handleDemandFileDrop\(/);
+  assert.match(html, /addEventListener\("dragover",handleDemandDragOver\)/);
+  assert.match(html, /addEventListener\("drop",handleDemandFileDrop\)/);
+});
+
+test("customer demand recognition previews before applying to current task", () => {
+  assert.match(html, /let demandState = \{busy:false,result:null,file:null\}/);
+  assert.match(html, /function demandPrompt\(/);
+  assert.match(html, /function recognizeDemandText\(/);
+  assert.match(html, /function renderDemandReview\(/);
+  assert.match(html, /function startDemandRecognition\(/);
+  assert.match(html, /function applyDemandResult\(/);
+  assert.match(html, /await askConfirmation\("应用后会替换当前每日行程/);
+  assert.match(html, /data\.days = clone\(demandState\.result\.data\.days\)/);
 });
 
 test("keeps all four action menu triggers equal without an export arrow", () => {
@@ -69,6 +113,21 @@ test("provides an expandable departure notice with six editable fields", () => {
   for (const field of ["guide","vehicle","meeting","flight","weather","notes"]) {
     assert.match(html, new RegExp(`data-notice-field="${field}"`));
   }
+});
+
+test("places highlights directly above departure notice and quote details", () => {
+  const titleIndex = html.indexOf('<h3 class="section-title">线路标题</h3>');
+  const highlightsIndex = html.indexOf('class="field highlights-field"');
+  const departureIndex = html.indexOf('id="departureNoticeEditor"');
+  const quoteIndex = html.indexOf('id="quoteDetailsEditor"');
+
+  assert.notEqual(highlightsIndex, -1);
+  assert.notEqual(departureIndex, -1);
+  assert.notEqual(quoteIndex, -1);
+  assert.ok(departureIndex > highlightsIndex);
+  assert.ok(departureIndex > titleIndex);
+  assert.ok(departureIndex < quoteIndex);
+  assert.match(html.slice(highlightsIndex), /id="highlightsInput"[\s\S]*?id="departureNoticeEditor"[\s\S]*?id="quoteDetailsEditor"/);
 });
 
 test("keeps departure notice hidden by default and renders it before highlights", () => {

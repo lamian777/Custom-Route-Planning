@@ -133,6 +133,36 @@
       resize: none; overflow: hidden; line-height: 1.55;
     }
     .bullet-list-row textarea:focus { box-shadow: none; }
+    .demand-card {
+      padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff;
+    }
+    .demand-inline { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 10px; }
+    .demand-inline .field { margin-bottom: 0; }
+    .demand-drop input, .demand-inline .btn-primary { height: 50px; }
+    .demand-inline .btn-primary { min-width: 78px; align-self: end; }
+    .demand-drop input { cursor: pointer; }
+    .demand-drop.drag-over input {
+      border-color: var(--primary); background: #fff8fa; box-shadow: 0 0 0 1px var(--primary);
+    }
+    .demand-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .demand-status {
+      margin-top: 12px; min-height: 46px; padding: 13px 14px; display: grid; place-items: center;
+      text-align: center; color: var(--muted); background: var(--soft); border-radius: 10px; font-size: 12px;
+    }
+    .demand-status.busy::before {
+      content: ""; width: 16px; height: 16px; margin-bottom: 7px; border: 2px solid #ddd;
+      border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite;
+    }
+    .demand-review { margin-top: 12px; display: grid; gap: 12px; }
+    .demand-review .review-summary, .demand-review .review-section { border: 1px solid var(--soft-line); border-radius: 10px; background: #fff; }
+    .demand-review .review-summary { padding: 12px; display: grid; gap: 3px; }
+    .demand-review .review-summary span { color: var(--muted); font-size: 12px; }
+    .demand-review .review-section { padding: 12px; }
+    .demand-review h4 { margin: 0 0 8px; font-size: 13px; }
+    .demand-review .review-list { margin: 0; padding-left: 18px; color: var(--body); }
+    .demand-review .review-days { display: grid; gap: 6px; }
+    .demand-review .review-day { padding: 8px 10px; background: var(--soft); border-radius: 8px; font-size: 12px; }
+    .demand-review .review-day strong { margin-right: 7px; color: var(--primary); }
     .date-picker-wrap { position: relative; }
     .date-trigger {
       width: 100%; min-height: 44px; padding: 11px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -459,6 +489,8 @@
       .top-actions .history-switcher { display: none; }
       .top-actions .btn { width: 100%; min-height: 38px; padding: 0 12px; }
       .mobile-tabs { top: 108px; }
+      .demand-inline { grid-template-columns: 1fr; }
+      .demand-inline .btn-primary { width: 100%; }
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .calendar-popover { width: min(310px, calc(100vw - 24px)); }
       .preview-shell { padding: 24px 17px; }
@@ -526,7 +558,6 @@
         <div class="import-menu" id="importMenu" hidden>
           <button class="btn" id="newBlankTaskBtn" type="button">新建空白</button>
           <button class="btn" id="duplicateTaskBtn" type="button">复制当前</button>
-          <button class="btn" id="importReferenceBtn" type="button">导入线路</button>
         </div>
       </div>
       <div class="settings-switcher">
@@ -557,32 +588,31 @@
     <section class="panel editor-panel">
       <div class="editor-scroll">
         <section class="section">
+          <section class="section" id="customerDemandSection">
+            <h3 class="section-title">客户需求</h3>
+            <div class="demand-card">
+              <label class="field">
+                <span>客户需求</span>
+                <textarea id="customerDemandInput" rows="5" placeholder="可填写人数、目的地、天数、预算、酒店标准、节奏偏好、必去景点等"></textarea>
+              </label>
+              <div class="demand-inline">
+                <label class="field demand-drop" id="customerReferenceDrop">
+                  <span>参考行程</span>
+                  <input id="customerReferenceFileInput" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+                </label>
+                <button class="btn btn-primary" id="recognizeDemandBtn" type="button">识别</button>
+              </div>
+              <div class="demand-actions">
+                <button class="btn" id="retryDemandRecognitionBtn" type="button" hidden>重新识别</button>
+                <button class="btn btn-primary" id="applyDemandResultBtn" type="button" hidden>应用到当前线路</button>
+              </div>
+              <div class="demand-status" id="demandStatus" hidden></div>
+              <div class="demand-review" id="demandReview" hidden></div>
+            </div>
+          </section>
           <h3 class="section-title">线路标题</h3>
           <label class="field">
             <input id="titleInput" maxlength="80" placeholder="例如：重庆、成都双飞6日游">
-          </label>
-          <details class="day-card notice-card" id="departureNoticeEditor">
-            <summary>
-              <span class="notice-summary notice-summary-muted" id="departureNoticeSummary"><strong>出团通知</strong></span>
-              <label class="visibility-toggle" title="控制客户版是否显示出团通知">
-                <input id="departureNoticeVisible" type="checkbox">
-                <span>显示</span>
-              </label>
-            </summary>
-            <div class="day-body">
-              <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
-              <div class="grid-2">
-                <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
-                <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
-              </div>
-              <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
-              <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
-              <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
-            </div>
-          </details>
-          <label class="field highlights-field">
-            <span class="section-title">行程亮点</span>
-            <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认隐藏"></textarea>
           </label>
         </section>
 
@@ -607,6 +637,29 @@
         </section>
 
         <section class="section">
+          <label class="field highlights-field">
+            <span class="section-title">行程亮点</span>
+            <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认隐藏"></textarea>
+          </label>
+          <details class="day-card notice-card" id="departureNoticeEditor">
+            <summary>
+              <span class="notice-summary notice-summary-muted" id="departureNoticeSummary"><strong>出团通知</strong></span>
+              <label class="visibility-toggle" title="控制客户版是否显示出团通知">
+                <input id="departureNoticeVisible" type="checkbox">
+                <span>显示</span>
+              </label>
+            </summary>
+            <div class="day-body">
+              <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
+              <div class="grid-2">
+                <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
+                <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
+              </div>
+              <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
+              <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
+              <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
+            </div>
+          </details>
           <details class="day-card notice-card" id="quoteDetailsEditor">
             <summary>
               <span class="notice-summary notice-summary-muted" id="quoteDetailsSummary"><strong>报价明细</strong></span>
@@ -631,29 +684,6 @@
   <div class="toast" id="toast" role="status"></div>
   <div class="calendar-popover" id="calendarPopover" hidden></div>
   <input id="restoreTasksInput" type="file" accept="application/json,.json" hidden>
-  <div class="modal-backdrop" id="importModal" hidden>
-    <section class="import-modal" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
-      <div class="modal-head">
-        <h2 id="importModalTitle">上传参考线路</h2>
-        <button class="modal-close" id="closeImportBtn" type="button" aria-label="关闭">×</button>
-      </div>
-      <div class="modal-body">
-        <div id="importSetup">
-          <p class="import-note"><strong>识别说明：</strong>文件会先在浏览器本地提取文字，再发送给已绑定的 DeepSeek API。TXT 可直接读取，DOCX/PDF 会加载浏览器端解析组件，旧版二进制 DOC 可能无法识别。</p>
-          <label class="field"><span>参考线路文件</span><input id="referenceFileInput" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"></label>
-          <label class="field"><span>或粘贴参考线路原文</span><textarea id="referenceTextInput" rows="5" placeholder="可直接粘贴供应商发来的行程文字"></textarea></label>
-          <p class="parser-hint" id="importProviderHint"></p>
-        </div>
-        <div class="import-status" id="importStatus" hidden></div>
-        <div class="import-review" id="importReview" hidden></div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn" id="cancelImportBtn" type="button">取消</button>
-        <button class="btn btn-primary" id="startImportBtn" type="button">开始识别</button>
-        <button class="btn btn-primary" id="confirmImportBtn" type="button" hidden>创建新任务</button>
-      </div>
-    </section>
-  </div>
   <div class="modal-backdrop" id="apiModal" hidden>
     <section class="import-modal" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
       <div class="modal-head">
@@ -900,7 +930,7 @@
       let suppressDragClickUntil = 0;
       const histories = {};
       let sizeObserver;
-      let importState = {busy:false,file:null,result:null,controller:null};
+      let demandState = {busy:false,result:null,file:null};
       let confirmResolver = null;
       let deepseekSettings = loadDeepseekSettings();
       let letterheadSettings = loadLetterheadSettings();
@@ -1334,50 +1364,6 @@
         save();
         toast(source === "duplicate" ? "已复制为新任务" : "已新建空白线路");
       }
-      function openImportModal() {
-        closeTaskMenu();
-        importState = {busy:false,file:null,result:null,controller:null};
-        $("#referenceFileInput").value = "";
-        $("#referenceTextInput").value = "";
-        $("#importProviderHint").textContent = deepseekSettings.apiKey
-          ? `当前使用 DeepSeek：${deepseekSettings.model}，密钥 ${maskedKey(deepseekSettings.apiKey)}`
-          : "尚未绑定 DeepSeek API，请先打开顶部的“API 设置”。";
-        $("#importSetup").hidden = false;
-        $("#importStatus").hidden = true;
-        $("#importReview").hidden = true;
-        $("#startImportBtn").hidden = false;
-        $("#confirmImportBtn").hidden = true;
-        $("#cancelImportBtn").disabled = false;
-        $("#closeImportBtn").disabled = false;
-        $("#importModal").hidden = false;
-        setTimeout(() => $("#referenceFileInput").focus(),0);
-      }
-      function closeImportModal() {
-        if (importState.busy) return;
-        $("#importModal").hidden = true;
-        importState = {busy:false,file:null,result:null,controller:null};
-      }
-      function setImportBusy(message) {
-        importState.busy = true;
-        $("#importSetup").hidden = true;
-        $("#importReview").hidden = true;
-        $("#importStatus").hidden = false;
-        $("#importStatus").className = "import-status busy";
-        $("#importStatus").textContent = message;
-        $("#startImportBtn").disabled = true;
-        $("#cancelImportBtn").disabled = true;
-        $("#closeImportBtn").disabled = true;
-      }
-      function setImportError(message) {
-        importState.busy = false;
-        $("#importSetup").hidden = false;
-        $("#importStatus").hidden = false;
-        $("#importStatus").className = "import-status";
-        $("#importStatus").textContent = message;
-        $("#startImportBtn").disabled = false;
-        $("#cancelImportBtn").disabled = false;
-        $("#closeImportBtn").disabled = false;
-      }
       function openApiModal() {
         closeTaskMenu();
         $("#deepseekKeyInput").value = deepseekSettings.apiKey;
@@ -1576,23 +1562,6 @@
         };
         return {data:taskData,warnings:[...new Set(warnings)],missingFields:[...new Set(missingFields)]};
       }
-      function importPrompt(text) {
-        return `请从下面的旅行线路原文中提取内容并严格输出 JSON。
-规则：
-1. 不得编造原文没有的信息；不确定的字段返回空字符串。
-2. 每日行程按原文顺序拆分。日期保留原文可确认的年月日；没有年份时返回“月日”，没有日期时为空。
-3. 午前、午后保留原文换行；无法判断属于哪个栏目的每日内容放入当天 remark，并在 warnings 说明。
-4. 早餐、午餐、晚餐分别提取；接待标准、特别说明、行程亮点每项单独返回。
-5. missingFields 列出原文未提供的重要栏目，warnings 列出歧义、无法归类或可能需要人工确认的内容。
-6. 如果文件不是旅行线路或无法识别每日行程，days 返回空数组，不要猜测。
-7. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
-
-JSON 格式：
-{"title":"","highlights":[],"days":[{"date":"","route":"","flight":"","morning":"","afternoon":"","remark":"","lodging":"","breakfast":"","lunch":"","dinner":""}],"standards":[],"notes":[],"warnings":[],"missingFields":[]}
-
-旅行线路原文：
-${text}`;
-      }
       async function requestJson(url,options,provider = "API") {
         let response;
         try { response = await fetch(url,options); }
@@ -1637,15 +1606,98 @@ ${text}`;
         },"DeepSeek");
         return refreshDeepseekBalance();
       }
-      async function recognizeReferenceText(text) {
+      function setDemandBusy(message) {
+        demandState.busy = true;
+        $("#demandStatus").hidden = false;
+        $("#demandStatus").className = "demand-status busy";
+        $("#demandStatus").textContent = message;
+        $("#demandReview").hidden = true;
+        $("#recognizeDemandBtn").disabled = true;
+        $("#retryDemandRecognitionBtn").disabled = true;
+        $("#applyDemandResultBtn").disabled = true;
+      }
+      function setDemandError(message) {
+        demandState.busy = false;
+        $("#demandStatus").hidden = true;
+        $("#demandStatus").className = "demand-status";
+        $("#demandStatus").textContent = "";
+        $("#demandReview").hidden = true;
+        $("#recognizeDemandBtn").disabled = false;
+        $("#retryDemandRecognitionBtn").disabled = false;
+        $("#applyDemandResultBtn").disabled = false;
+        toast(message);
+      }
+      function resetDemandReview() {
+        demandState.result = null;
+        $("#demandStatus").hidden = true;
+        $("#demandReview").hidden = true;
+        $("#retryDemandRecognitionBtn").hidden = true;
+        $("#applyDemandResultBtn").hidden = true;
+        $("#recognizeDemandBtn").hidden = false;
+        $("#recognizeDemandBtn").disabled = false;
+      }
+      function handleDemandDragOver(event) {
+        event.preventDefault();
+        event.currentTarget.classList.add("drag-over");
+      }
+      function clearDemandDragState(event) {
+        event.currentTarget.classList.remove("drag-over");
+      }
+      function handleDemandFileDrop(event) {
+        event.preventDefault();
+        event.currentTarget.classList.remove("drag-over");
+        const files = event.dataTransfer?.files;
+        if (!files?.length) return;
+        $("#customerReferenceFileInput").files = files;
+        if (demandState.result) resetDemandReview();
+      }
+      function renderDemandReview(result, sourceName) {
+        const warningItems = [...result.warnings,...result.missingFields.map(value => `缺失栏目：${value}`)];
+        $("#demandReview").innerHTML = `
+          <div class="review-summary"><strong>${esc(result.data.title || data.title || "未识别到标题")}</strong><span>${esc(sourceName)} · 共 ${result.data.days.length} 天</span></div>
+          ${warningItems.length ? `<section class="review-section review-warning"><h4>需要确认</h4><ul class="review-list">${warningItems.map(value => `<li>${esc(value)}</li>`).join("")}</ul></section>` : ""}
+          <section class="review-section"><h4>每日行程摘要</h4><div class="review-days">${result.data.days.map((day,index) => `<div class="review-day"><strong>D${index + 1}</strong>${esc(day.route || "路线未识别")}${day.date ? ` · ${esc(day.date)}` : ""}</div>`).join("")}</div></section>`;
+        $("#demandStatus").hidden = true;
+        $("#demandReview").hidden = false;
+        $("#recognizeDemandBtn").hidden = true;
+        $("#retryDemandRecognitionBtn").hidden = false;
+        $("#applyDemandResultBtn").hidden = false;
+        $("#retryDemandRecognitionBtn").disabled = false;
+        $("#applyDemandResultBtn").disabled = false;
+      }
+      function demandPrompt(text, sourceLabel = "客户需求") {
+        const currentDays = data.days?.length || 0;
+        const currentRoutes = (data.days || []).map((day,index) => `D${index + 1} ${day.route || ""}`).join("\n");
+        return `请根据下面的${sourceLabel}生成或提取旅行线路，并严格输出 JSON。
+规则：
+1. 优先遵守客户明确提出的目的地、天数、预算、酒店标准、餐饮、交通和节奏偏好。
+2. 如果信息不完整，可以结合当前线路标题和已有天数合理生成；不确定的字段返回空字符串，并写入 warnings。
+3. 每日行程按顺序拆分。午前、午后保留换行；无法归类的内容放入当天 remark。
+4. 早餐、午餐、晚餐分别提取或规划；接待标准、特别说明、行程亮点每项单独返回。
+5. missingFields 列出仍需人工补充的重要栏目，warnings 列出推断、歧义、无法确认或可能需要人工确认的内容。
+6. 如果完全无法识别或生成每日行程，days 返回空数组，不要输出解释。
+7. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
+
+当前线路标题：${data.title || "未填写"}
+当前已有天数：${currentDays || "未填写"}
+当前已有路线：
+${currentRoutes || "无"}
+
+JSON 格式：
+{"title":"","highlights":[],"days":[{"date":"","route":"","flight":"","morning":"","afternoon":"","remark":"","lodging":"","breakfast":"","lunch":"","dinner":""}],"standards":[],"notes":[],"warnings":[],"missingFields":[]}
+
+${sourceLabel}：
+${text}`;
+      }
+      async function recognizeDemandText(text, sourceLabel) {
         const response = await requestJson("https://api.deepseek.com/chat/completions",{
           method:"POST",
           headers:deepseekHeaders(),
           body:JSON.stringify({
             model:deepseekSettings.model || "deepseek-v4-flash",
             messages:[
-              {role:"system",content:"你是旅行线路结构化助手。你必须只输出合法 JSON，不得编造原文没有的信息。"},
-              {role:"user",content:importPrompt(text)}
+              {role:"system",content:"你是旅行线路定制助手。你必须只输出合法 JSON，无法确认的字段留空，不要编造客户未要求的硬性信息。"},
+              {role:"user",content:demandPrompt(text,sourceLabel)}
             ],
             response_format:{type:"json_object"},
             stream:false,
@@ -1655,6 +1707,9 @@ ${text}`;
         const content = response?.choices?.[0]?.message?.content || "";
         if (!content) throw new Error("DeepSeek 未返回可用的识别结果。");
         return normalizeImportedResult(parseModelJson(content));
+      }
+      function setRecognitionBusy(message) {
+        setDemandBusy(message);
       }
       function loadScriptOnce(src,globalName) {
         if (window[globalName]) return Promise.resolve(window[globalName]);
@@ -1670,9 +1725,9 @@ ${text}`;
         return file.text();
       }
       async function extractDocx(file) {
-        setImportBusy("正在加载 Word 解析组件…");
+        setRecognitionBusy("正在加载 Word 解析组件…");
         const mammoth = await loadScriptOnce("https://cdn.jsdelivr.net/npm/mammoth@1.9.1/mammoth.browser.min.js","mammoth");
-        setImportBusy("正在读取 Word 文本…");
+        setRecognitionBusy("正在读取 Word 文本…");
         const result = await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
         const text = result?.value || "";
         if (!text.trim()) throw new Error("未能从 Word 文件中提取文字，请确认文件不是图片扫描件。");
@@ -1686,21 +1741,21 @@ ${text}`;
         return "";
       }
       async function extractDoc(file) {
-        setImportBusy("正在读取 Word 文本…");
+        setRecognitionBusy("正在读取 Word 文本…");
         const buffer = await file.arrayBuffer();
         const text = bytesToText(buffer);
         if (text.trim()) return new DOMParser().parseFromString(text,"text/html").body.textContent || text;
         throw new Error("旧版二进制 DOC 无法在浏览器内稳定解析，请另存为 DOCX 或 PDF 后再上传。");
       }
       async function extractPdf(file) {
-        setImportBusy("正在加载 PDF 解析组件…");
+        setRecognitionBusy("正在加载 PDF 解析组件…");
         const pdfjsLib = await loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","pdfjsLib");
         pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-        setImportBusy("正在读取 PDF 文本…");
+        setRecognitionBusy("正在读取 PDF 文本…");
         const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
         const pages = [];
         for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
-          setImportBusy(`正在读取 PDF 文本… ${pageNo}/${pdf.numPages}`);
+          setRecognitionBusy(`正在读取 PDF 文本… ${pageNo}/${pdf.numPages}`);
           const page = await pdf.getPage(pageNo);
           const content = await page.getTextContent();
           pages.push(content.items.map(item => item.str).join(" "));
@@ -1720,55 +1775,46 @@ ${text}`;
         if (extension === "pdf") return extractPdf(file);
         throw new Error("仅支持 PDF、Word、TXT，或直接粘贴原文。");
       }
-      function renderImportReview(file,result) {
-        const warningItems = [...result.warnings,...result.missingFields.map(value => `缺失栏目：${value}`)];
-        const sourceName = file?.name || "粘贴原文";
-        $("#importReview").innerHTML = `
-          <div class="review-summary"><strong>${esc(result.data.title || "未识别到标题")}</strong><span>${esc(sourceName)} · 共 ${result.data.days.length} 天</span></div>
-          ${warningItems.length ? `<section class="review-section review-warning"><h3>需要确认</h3><ul class="review-list">${warningItems.map(value => `<li>${esc(value)}</li>`).join("")}</ul></section>` : ""}
-          <section class="review-section"><h3>每日行程摘要</h3><div class="review-days">${result.data.days.map((day,index) => `<div class="review-day"><strong>D${index + 1}</strong>${esc(day.route || "路线未识别")}${day.date ? ` · ${esc(day.date)}` : ""}</div>`).join("")}</div></section>`;
-        $("#importSetup").hidden = true;
-        $("#importStatus").hidden = true;
-        $("#importReview").hidden = false;
-        $("#startImportBtn").hidden = true;
-        $("#confirmImportBtn").hidden = false;
-        $("#cancelImportBtn").disabled = false;
-        $("#closeImportBtn").disabled = false;
-      }
-      async function startReferenceImport() {
-        const file = $("#referenceFileInput").files?.[0];
-        const pasted = $("#referenceTextInput").value || "";
-        if (!deepseekSettings.apiKey) return setImportError("请先在“API 设置”中保存 API 密钥。");
-        importState.file = file;
+      async function startDemandRecognition() {
+        const file = $("#customerReferenceFileInput").files?.[0];
+        const demandText = $("#customerDemandInput").value.trim();
+        if (!deepseekSettings.apiKey) return setDemandError("请先在“设置 → API 设置”中保存 API 密钥。");
+        if (!file && !demandText) return setDemandError("请先填写客户需求，或上传参考行程文件。");
+        demandState = {busy:true,result:null,file:file || null};
         try {
-          setImportBusy("正在提取参考线路文字…");
-          const text = await extractReferenceText(file,pasted);
-          if (text.length < 20) throw new Error("提取到的文字太少，请确认文件内容是否正确。");
-          setImportBusy("正在调用 DeepSeek 识别并整理栏目…");
-          const result = await recognizeReferenceText(text.slice(0,260000));
-          if (text.length > 260000) result.warnings.push("原文过长，已截取前 26 万字进行识别。");
-          importState.result = result;
-          importState.busy = false;
-          renderImportReview(file,result);
+          setDemandBusy(file ? "正在读取参考行程…" : "正在整理客户需求…");
+          const fileText = file ? await extractReferenceText(file,"") : "";
+          const sourceLabel = file ? "客户需求和参考行程" : "客户需求";
+          const sourceText = [
+            demandText ? `客户需求：\n${demandText}` : "",
+            fileText ? `参考行程：\n${fileText}` : ""
+          ].filter(Boolean).join("\n\n");
+          if (sourceText.length < 12) throw new Error("可识别的文字太少，请补充客户需求或检查文件内容。");
+          setDemandBusy("正在调用 DeepSeek 识别并整理每日行程…");
+          const result = await recognizeDemandText(sourceText.slice(0,260000),sourceLabel);
+          if (sourceText.length > 260000) result.warnings.push("内容过长，已截取前 26 万字进行识别。");
+          demandState = {busy:false,result,file:file || null};
+          renderDemandReview(result,file?.name || "客户需求");
         } catch (error) {
-          importState.busy = false;
-          setImportError(error.message || "识别失败，请稍后重试。");
+          demandState.busy = false;
+          setDemandError(error.message || "识别失败，请稍后重试。");
         }
       }
-      function confirmReferenceImport() {
-        if (!importState.result) return;
-        clearTimeout(saveTimer);
-        try { persistLibrary(); } catch (_) {}
-        const id = uid();
-        library.tasks.push({id,data:clone(importState.result.data),updatedAt:Date.now()});
-        library.currentId = id;
-        data = currentTask().data;
-        closeImportModal();
+      async function applyDemandResult() {
+        if (!demandState.result) return;
+        if (data.days.length && !await askConfirmation("应用后会替换当前每日行程，并同步更新识别出的标题、亮点、标准和说明。","确定应用识别结果吗？")) return;
+        remember();
+        const recognized = demandState.result.data;
+        if (recognized.title) data.title = recognized.title;
+        if (recognized.highlights) data.highlights = recognized.highlights;
+        if (recognized.standards?.length) data.standards = clone(recognized.standards);
+        if (recognized.notes?.length) data.notes = clone(recognized.notes);
+        data.days = clone(demandState.result.data.days);
+        data._heights = clone(data._heights || {});
+        resetDemandReview();
         renderAll();
-        renderTaskMenu();
-        updateUndoButton();
         save();
-        toast("参考线路已创建为新任务");
+        toast("识别结果已应用到当前线路");
       }
       function saveDeepseekFromForm() {
         const apiKey = $("#deepseekKeyInput").value.trim();
@@ -2529,7 +2575,6 @@ ${text}`;
         if (!$("#exportMenu").hidden && !e.target.closest(".export-switcher")) closeExportMenu();
       });
       document.addEventListener("keydown",e => {
-        if (e.key === "Escape" && !$("#importModal").hidden) closeImportModal();
         if (e.key === "Escape" && !$("#apiModal").hidden) closeApiModal();
         if (e.key === "Escape" && !$("#letterheadModal").hidden) closeLetterheadModal();
         if (e.key === "Escape" && !$("#confirmModal").hidden) closeConfirmModal(false);
@@ -2547,7 +2592,6 @@ ${text}`;
       });
       $("#newBlankTaskBtn").addEventListener("click",() => { closeImportMenu(); createTask("blank"); });
       $("#duplicateTaskBtn").addEventListener("click",() => { closeImportMenu(); createTask("duplicate"); });
-      $("#importReferenceBtn").addEventListener("click",() => { closeImportMenu(); openImportModal(); });
       $("#deepseekSettingsBtn").addEventListener("click",() => { closeSettingsMenu(); openApiModal(); });
       $("#letterheadSettingsBtn").addEventListener("click",() => { closeSettingsMenu(); openLetterheadModal(); });
       $("#backupTasksBtn").addEventListener("click",() => { closeSettingsMenu(); backupTasks(); });
@@ -2557,12 +2601,21 @@ ${text}`;
         if (file) restoreTasks(file);
         e.target.value = "";
       });
-      ["closeImportBtn","cancelImportBtn"].forEach(id => $(`#${id}`).addEventListener("click",closeImportModal));
-      $("#startImportBtn").addEventListener("click",startReferenceImport);
-      $("#confirmImportBtn").addEventListener("click",confirmReferenceImport);
+      $("#recognizeDemandBtn").addEventListener("click",startDemandRecognition);
+      $("#retryDemandRecognitionBtn").addEventListener("click",startDemandRecognition);
+      $("#applyDemandResultBtn").addEventListener("click",applyDemandResult);
+      $("#customerDemandInput").addEventListener("input",() => {
+        if (demandState.result) resetDemandReview();
+      });
+      $("#customerReferenceFileInput").addEventListener("change",() => {
+        if (demandState.result) resetDemandReview();
+      });
+      $("#customerReferenceDrop").addEventListener("dragover",handleDemandDragOver);
+      $("#customerReferenceDrop").addEventListener("dragleave",clearDemandDragState);
+      $("#customerReferenceDrop").addEventListener("drop",handleDemandFileDrop);
       $("#closeApiBtn").addEventListener("click",closeApiModal);
       $("#closeLetterheadBtn").addEventListener("click",closeLetterheadModal);
-      [["importModal",closeImportModal],["apiModal",closeApiModal],["letterheadModal",closeLetterheadModal],["confirmModal",() => closeConfirmModal(false)]].forEach(([id,close]) => {
+      [["apiModal",closeApiModal],["letterheadModal",closeLetterheadModal],["confirmModal",() => closeConfirmModal(false)]].forEach(([id,close]) => {
         $(`#${id}`).addEventListener("click",e => { if (e.target === $(`#${id}`)) close(); });
       });
       $("#letterheadFileInput").addEventListener("change",e => {
