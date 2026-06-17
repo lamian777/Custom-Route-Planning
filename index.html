@@ -101,16 +101,43 @@
     }
     .editor-panel { display: flex; flex-direction: column; }
     .editor-scroll { padding: 20px; overflow: visible; }
+    .editor-group + .editor-group {
+      margin-top: 20px;
+    }
+    .editor-group-head {
+      position: relative; margin: 0 0 18px; min-height: 30px; padding-left: 14px;
+      display: flex; align-items: center; justify-content: flex-end; gap: 9px; text-align: right;
+    }
+    .editor-group-head::before {
+      content: ""; flex: 1; height: 1px; min-width: 42px;
+      background: var(--line); border-radius: 999px;
+    }
+    .editor-group-head::after {
+      content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px;
+      background: var(--primary); border-radius: 999px;
+    }
+    .editor-group-index {
+      color: var(--primary); font-size: 18px; font-weight: 850; letter-spacing: .02em;
+    }
+    .editor-group-title {
+      margin: 0; color: var(--ink); font-size: 18px; font-weight: 800; letter-spacing: 0;
+    }
     .section { margin-bottom: 24px; }
     .section:last-child { margin-bottom: 0; }
     .section-title {
       margin: 0 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
       font-size: 15px; font-weight: 650;
     }
+    .editor-panel .section-title {
+      color: var(--muted); font-size: 12px; font-weight: 600;
+    }
     .field { display: block; margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
     .field span { display: block; margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
     .field span.section-title { margin-bottom: 10px; color: var(--ink); font-size: 15px; font-weight: 650; }
+    .editor-panel .field span.section-title {
+      color: var(--muted); font-size: 12px; font-weight: 600;
+    }
     .field .required-mark { margin-right: 3px; color: var(--primary); font-weight: 800; }
     input, textarea, select {
       width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
@@ -118,6 +145,8 @@
     }
     input:focus, textarea:focus, select:focus { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
     textarea { min-height: 76px; line-height: 1.55; }
+    textarea:placeholder-shown:not([data-list-field]):not(.quote-cell-text) { height: 44px; min-height: 44px; }
+    textarea:not(:placeholder-shown):not([data-list-field]):not(.quote-cell-text) { min-height: 76px; }
     .bullet-list-editor {
       min-height: 76px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
       background: #fff; transition: border-color .15s;
@@ -133,9 +162,6 @@
       resize: none; overflow: hidden; line-height: 1.55;
     }
     .bullet-list-row textarea:focus { box-shadow: none; }
-    .demand-card {
-      padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff;
-    }
     .demand-inline { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 10px; }
     .demand-inline .field { margin-bottom: 0; }
     .demand-drop input, .demand-inline .btn-primary { height: 50px; }
@@ -587,92 +613,110 @@
 
     <section class="panel editor-panel">
       <div class="editor-scroll">
-        <section class="section">
-          <section class="section" id="customerDemandSection">
-            <h3 class="section-title">客户需求</h3>
-            <div class="demand-card">
-              <label class="field">
-                <span>客户需求</span>
-                <textarea id="customerDemandInput" rows="5" placeholder="可填写人数、目的地、天数、预算、酒店标准、节奏偏好、必去景点等"></textarea>
+        <div class="editor-group" data-editor-group="demand">
+          <div class="editor-group-head">
+            <span class="editor-group-index">01</span>
+            <h2 class="editor-group-title">需求信息</h2>
+          </div>
+          <section class="section demand-section" id="customerDemandSection">
+            <label class="field">
+              <span>客户需求</span>
+              <textarea id="customerDemandInput" rows="5" placeholder="可填写人数、目的地、天数、预算、酒店标准、节奏偏好、必去景点等"></textarea>
+            </label>
+            <div class="demand-inline">
+              <label class="field demand-drop" id="customerReferenceDrop">
+                <span>参考行程</span>
+                <input id="customerReferenceFileInput" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
               </label>
-              <div class="demand-inline">
-                <label class="field demand-drop" id="customerReferenceDrop">
-                  <span>参考行程</span>
-                  <input id="customerReferenceFileInput" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
-                </label>
-                <button class="btn btn-primary" id="recognizeDemandBtn" type="button">识别</button>
-              </div>
-              <div class="demand-actions">
-                <button class="btn" id="retryDemandRecognitionBtn" type="button" hidden>重新识别</button>
-                <button class="btn btn-primary" id="applyDemandResultBtn" type="button" hidden>应用到当前线路</button>
-              </div>
-              <div class="demand-status" id="demandStatus" hidden></div>
-              <div class="demand-review" id="demandReview" hidden></div>
+              <button class="btn btn-primary" id="recognizeDemandBtn" type="button">识别</button>
             </div>
+            <div class="demand-actions">
+              <button class="btn" id="retryDemandRecognitionBtn" type="button" hidden>重新识别</button>
+              <button class="btn btn-primary" id="applyDemandResultBtn" type="button" hidden>应用到当前线路</button>
+            </div>
+            <div class="demand-status" id="demandStatus" hidden></div>
+            <div class="demand-review" id="demandReview" hidden></div>
           </section>
-          <h3 class="section-title">线路标题</h3>
-          <label class="field">
-            <input id="titleInput" maxlength="80" placeholder="例如：重庆、成都双飞6日游">
-          </label>
-        </section>
+        </div>
 
-        <section class="section">
-          <h3 class="section-title"><span>每日行程</span><small id="dayCount"></small></h3>
-          <div id="daysEditor"></div>
-          <button class="btn" id="addDayBottom" type="button" style="width:100%">＋ 新增一天</button>
-        </section>
+        <div class="editor-group" data-editor-group="base">
+          <div class="editor-group-head">
+            <span class="editor-group-index">02</span>
+            <h2 class="editor-group-title">基础内容</h2>
+          </div>
 
-        <section class="section">
-          <h3 class="section-title">接待标准</h3>
-          <label class="field">
-            <div class="bullet-list-editor" id="standardsInput" data-list-editor="standards"></div>
-          </label>
-        </section>
+          <section class="section">
+            <h3 class="section-title">线路标题</h3>
+            <label class="field">
+              <input id="titleInput" maxlength="80" placeholder="例如：重庆、成都双飞6日游">
+            </label>
+          </section>
 
-        <section class="section">
-          <h3 class="section-title">特别说明</h3>
-          <label class="field">
-            <div class="bullet-list-editor" id="notesInput" data-list-editor="notes"></div>
-          </label>
-        </section>
+          <section class="section">
+            <h3 class="section-title"><span>每日行程</span><small id="dayCount"></small></h3>
+            <div id="daysEditor"></div>
+            <button class="btn" id="addDayBottom" type="button" style="width:100%">＋ 新增一天</button>
+          </section>
 
-        <section class="section">
-          <label class="field highlights-field">
-            <span class="section-title">行程亮点</span>
-            <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认隐藏"></textarea>
-          </label>
-          <details class="day-card notice-card" id="departureNoticeEditor">
-            <summary>
-              <span class="notice-summary notice-summary-muted" id="departureNoticeSummary"><strong>出团通知</strong></span>
-              <label class="visibility-toggle" title="控制客户版是否显示出团通知">
-                <input id="departureNoticeVisible" type="checkbox">
-                <span>显示</span>
-              </label>
-            </summary>
-            <div class="day-body">
-              <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
-              <div class="grid-2">
-                <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
-                <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
+          <section class="section">
+            <h3 class="section-title">接待标准</h3>
+            <label class="field">
+              <div class="bullet-list-editor" id="standardsInput" data-list-editor="standards"></div>
+            </label>
+          </section>
+
+          <section class="section">
+            <h3 class="section-title">特别说明</h3>
+            <label class="field">
+              <div class="bullet-list-editor" id="notesInput" data-list-editor="notes"></div>
+            </label>
+          </section>
+        </div>
+
+        <div class="editor-group" data-editor-group="extra">
+          <div class="editor-group-head">
+            <span class="editor-group-index">03</span>
+            <h2 class="editor-group-title">附加板块</h2>
+          </div>
+
+          <section class="section">
+            <label class="field highlights-field">
+              <span class="section-title">行程亮点</span>
+              <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认隐藏"></textarea>
+            </label>
+            <details class="day-card notice-card" id="departureNoticeEditor">
+              <summary>
+                <span class="notice-summary notice-summary-muted" id="departureNoticeSummary"><strong>出团通知</strong></span>
+                <label class="visibility-toggle" title="控制客户版是否显示出团通知">
+                  <input id="departureNoticeVisible" type="checkbox">
+                  <span>显示</span>
+                </label>
+              </summary>
+              <div class="day-body">
+                <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
+                <div class="grid-2">
+                  <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
+                  <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
+                </div>
+                <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
+                <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
+                <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
               </div>
-              <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
-              <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
-              <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
-            </div>
-          </details>
-          <details class="day-card notice-card" id="quoteDetailsEditor">
-            <summary>
-              <span class="notice-summary notice-summary-muted" id="quoteDetailsSummary"><strong>报价明细</strong></span>
-              <label class="visibility-toggle" title="控制客户版是否显示报价明细">
-                <input id="quoteDetailsVisible" type="checkbox">
-                <span>显示</span>
-              </label>
-            </summary>
-            <div class="day-body">
-              <div id="quoteTableEditor"></div>
-            </div>
-          </details>
-        </section>
+            </details>
+            <details class="day-card notice-card" id="quoteDetailsEditor">
+              <summary>
+                <span class="notice-summary notice-summary-muted" id="quoteDetailsSummary"><strong>报价明细</strong></span>
+                <label class="visibility-toggle" title="控制客户版是否显示报价明细">
+                  <input id="quoteDetailsVisible" type="checkbox">
+                  <span>显示</span>
+                </label>
+              </summary>
+              <div class="day-body">
+                <div id="quoteTableEditor"></div>
+              </div>
+            </details>
+          </section>
+        </div>
       </div>
     </section>
 
@@ -1557,7 +1601,7 @@
           warnings.push("文件未提供年份，已按最近尚未过去的日期自动推算。");
         }
         const taskData = {
-          title:text(raw?.title), highlights:list(raw?.highlights).join("\n"), days,
+          title:text(raw?.title), days,
           standards:list(raw?.standards), notes:list(raw?.notes), _heights:clone(data?._heights || {})
         };
         return {data:taskData,warnings:[...new Set(warnings)],missingFields:[...new Set(missingFields)]};
@@ -1673,10 +1717,11 @@
 1. 优先遵守客户明确提出的目的地、天数、预算、酒店标准、餐饮、交通和节奏偏好。
 2. 如果信息不完整，可以结合当前线路标题和已有天数合理生成；不确定的字段返回空字符串，并写入 warnings。
 3. 每日行程按顺序拆分。午前、午后保留换行；无法归类的内容放入当天 remark。
-4. 早餐、午餐、晚餐分别提取或规划；接待标准、特别说明、行程亮点每项单独返回。
+4. 早餐、午餐、晚餐分别提取或规划；接待标准、特别说明每项单独返回。
 5. missingFields 列出仍需人工补充的重要栏目，warnings 列出推断、歧义、无法确认或可能需要人工确认的内容。
 6. 如果完全无法识别或生成每日行程，days 返回空数组，不要输出解释。
-7. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
+7. 识别范围仅限 02 基础内容，不要提取、生成或修改 03 附加板块，包括行程亮点、出团通知、报价明细。
+8. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
 
 当前线路标题：${data.title || "未填写"}
 当前已有天数：${currentDays || "未填写"}
@@ -1684,7 +1729,7 @@
 ${currentRoutes || "无"}
 
 JSON 格式：
-{"title":"","highlights":[],"days":[{"date":"","route":"","flight":"","morning":"","afternoon":"","remark":"","lodging":"","breakfast":"","lunch":"","dinner":""}],"standards":[],"notes":[],"warnings":[],"missingFields":[]}
+{"title":"","days":[{"date":"","route":"","flight":"","morning":"","afternoon":"","remark":"","lodging":"","breakfast":"","lunch":"","dinner":""}],"standards":[],"notes":[],"warnings":[],"missingFields":[]}
 
 ${sourceLabel}：
 ${text}`;
@@ -1802,11 +1847,10 @@ ${text}`;
       }
       async function applyDemandResult() {
         if (!demandState.result) return;
-        if (data.days.length && !await askConfirmation("应用后会替换当前每日行程，并同步更新识别出的标题、亮点、标准和说明。","确定应用识别结果吗？")) return;
+        if (data.days.length && !await askConfirmation("应用后会替换当前每日行程，并同步更新识别出的标题、标准和说明。03 附加板块不会被修改。","确定应用识别结果吗？")) return;
         remember();
         const recognized = demandState.result.data;
         if (recognized.title) data.title = recognized.title;
-        if (recognized.highlights) data.highlights = recognized.highlights;
         if (recognized.standards?.length) data.standards = clone(recognized.standards);
         if (recognized.notes?.length) data.notes = clone(recognized.notes);
         data.days = clone(demandState.result.data.days);
@@ -1944,6 +1988,19 @@ ${text}`;
       function applyGlobalHeight(id) {
         const element = $(`#${id}`);
         element.style.height = data._heights?.[id] ? `${data._heights[id]}px` : "";
+      }
+      function minimizeEmptyTextarea(textarea) {
+        if (!textarea.matches("textarea:not([data-list-field]):not(.quote-cell-text)")) return;
+        const key = textarea.dataset.field || textarea.id;
+        if (textarea.value === "") {
+          textarea.style.height = "44px";
+          if (key && data._heights) delete data._heights[key];
+        } else if (textarea.style.height === "44px") {
+          textarea.style.height = "";
+        }
+      }
+      function minimizeEmptyTextareas(scope = document) {
+        scope.querySelectorAll("textarea:not([data-list-field]):not(.quote-cell-text)").forEach(minimizeEmptyTextarea);
       }
       function captureCurrentSizes() {
         data._heights ||= {};
@@ -2309,7 +2366,7 @@ ${text}`;
         window.addEventListener("afterprint",cleanup);
         window.print();
       }
-      function renderAll(openIndex = null) { renderEditor(openIndex); renderPreview(); }
+      function renderAll(openIndex = null) { renderEditor(openIndex); minimizeEmptyTextareas($(".editor-panel")); renderPreview(); }
       function addDay() {
         remember();
         data.days.push(blankDay(data.days.length));
@@ -2423,6 +2480,9 @@ ${text}`;
         if (e.target.id === "quoteServiceFeeEnabled") data.quoteDetails.serviceFee.enabled = e.target.checked;
         if (e.target.id === "quoteTaxEnabled") data.quoteDetails.tax.enabled = e.target.checked;
         renderAll(); save();
+      });
+      $(".editor-panel").addEventListener("input", e => {
+        if (e.target.matches("textarea")) minimizeEmptyTextarea(e.target);
       });
       $("#highlightsInput").addEventListener("input", e => { remember(); data.highlights = e.target.value; renderPreview(); save(); });
       document.querySelectorAll("[data-list-editor]").forEach(editor => {

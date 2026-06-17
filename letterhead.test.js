@@ -52,6 +52,39 @@ test("adds customer demand section before title", () => {
   assert.match(html, /id="recognizeDemandBtn"/);
   assert.match(html, /id="applyDemandResultBtn"/);
   assert.match(html, /id="retryDemandRecognitionBtn"/);
+  assert.doesNotMatch(html, /<h3 class="section-title">客户需求<\/h3>/);
+  assert.doesNotMatch(html, /class="demand-card"/);
+  assert.match(html, /<section class="section demand-section" id="customerDemandSection">\s*<label class="field">/);
+});
+
+test("groups the editor sidebar into three lightweight sections", () => {
+  const demandGroupIndex = html.indexOf('data-editor-group="demand"');
+  const baseGroupIndex = html.indexOf('data-editor-group="base"');
+  const extraGroupIndex = html.indexOf('data-editor-group="extra"');
+
+  assert.notEqual(demandGroupIndex, -1);
+  assert.notEqual(baseGroupIndex, -1);
+  assert.notEqual(extraGroupIndex, -1);
+  assert.ok(demandGroupIndex < baseGroupIndex);
+  assert.ok(baseGroupIndex < extraGroupIndex);
+  assert.match(html, /<span class="editor-group-index">01<\/span>[\s\S]*?<h2 class="editor-group-title">需求信息<\/h2>/);
+  assert.match(html, /<span class="editor-group-index">02<\/span>[\s\S]*?<h2 class="editor-group-title">基础内容<\/h2>/);
+  assert.match(html, /<span class="editor-group-index">03<\/span>[\s\S]*?<h2 class="editor-group-title">附加板块<\/h2>/);
+  assert.match(html, /\.editor-group \+ \.editor-group \{/);
+  assert.doesNotMatch(html, /\.editor-group \+ \.editor-group \{[^}]*border-top:/s);
+  assert.match(html, /\.editor-group-head \{[^}]*justify-content: flex-end/s);
+  assert.match(html, /\.editor-group-head::before \{[^}]*flex: 1/s);
+  assert.match(html, /\.editor-group-head::before \{[^}]*height: 1px/s);
+  assert.match(html, /\.editor-group-head::before \{[^}]*background: var\(--line\)/s);
+  assert.match(html, /\.editor-group-head::after \{[^}]*width: 3px/s);
+  assert.match(html, /\.editor-group-head::after \{[^}]*background: var\(--primary\)/s);
+  assert.match(html, /\.editor-group-index \{[^}]*font-size: 18px/s);
+  assert.match(html, /\.editor-group-title \{/);
+  assert.doesNotMatch(html, /<p>先整理客户输入和参考材料。<\/p>/);
+  assert.doesNotMatch(html, /<p>编辑客户版行程的主体信息。<\/p>/);
+  assert.doesNotMatch(html, /<p>按需要补充展示项和报价信息。<\/p>/);
+  assert.doesNotMatch(html, /\.editor-group \{[^}]*background:/s);
+  assert.doesNotMatch(html, /\.editor-group \{[^}]*box-shadow:/s);
 });
 
 test("keeps customer demand controls compact without inline hints", () => {
@@ -60,6 +93,29 @@ test("keeps customer demand controls compact without inline hints", () => {
   assert.doesNotMatch(html, /id="recognizeDemandBtn"[^>]*>识别需求<\/button>/);
   assert.doesNotMatch(html, /id="demandProviderHint"/);
   assert.doesNotMatch(html, /尚未绑定 DeepSeek API，请先打开顶部的/);
+});
+
+test("matches editor subsection labels to customer demand label styling without changing preview headings", () => {
+  assert.match(html, /\.editor-panel \.section-title \{[^}]*color: var\(--muted\)[^}]*font-size: 12px[^}]*font-weight: 600/s);
+  assert.match(html, /\.editor-panel \.field span\.section-title \{[^}]*color: var\(--muted\)[^}]*font-size: 12px[^}]*font-weight: 600/s);
+  assert.doesNotMatch(html, /\.preview-highlights h3 \{[^}]*font-size: 12px/s);
+  assert.doesNotMatch(html, /\.preview-quote-details h3 \{[^}]*font-size: 12px/s);
+  assert.doesNotMatch(html, /\.info-section h3 \{[^}]*font-size: 12px/s);
+});
+
+test("minimizes empty resizable textareas until they contain content", () => {
+  assert.match(html, /textarea:placeholder-shown:not\(\[data-list-field\]\):not\(\.quote-cell-text\) \{[^}]*height: 44px[^}]*min-height: 44px/s);
+  assert.match(html, /textarea:not\(:placeholder-shown\):not\(\[data-list-field\]\):not\(\.quote-cell-text\) \{[^}]*min-height: 76px/s);
+  assert.match(html, /function minimizeEmptyTextarea\(/);
+  assert.match(html, /textarea\.style\.height = "44px"/);
+  assert.match(html, /textarea\.style\.height === "44px"[\s\S]*?textarea\.style\.height = ""/);
+  assert.match(html, /function minimizeEmptyTextareas\(/);
+  assert.match(html, /renderEditor\(openIndex\); minimizeEmptyTextareas\(\$\("\.editor-panel"\)\); renderPreview\(\)/);
+  assert.match(html, /delete data\._heights\[key\]/);
+  assert.match(html, /\.editor-panel"\)\.addEventListener\("input",[\s\S]*?minimizeEmptyTextarea/);
+  assert.match(html, /<textarea id="customerDemandInput" rows="5"/);
+  assert.match(html, /\.bullet-list-row textarea \{[^}]*resize: none/s);
+  assert.match(html, /function autosizeQuoteTextareas\(/);
 });
 
 test("supports dragging reference itinerary files into a tidy aligned control", () => {
@@ -81,6 +137,11 @@ test("customer demand recognition previews before applying to current task", () 
   assert.match(html, /function startDemandRecognition\(/);
   assert.match(html, /function applyDemandResult\(/);
   assert.match(html, /await askConfirmation\("应用后会替换当前每日行程/);
+  assert.match(html, /识别范围仅限 02 基础内容/);
+  assert.doesNotMatch(html, /"highlights":\[\]/);
+  assert.doesNotMatch(html, /recognized\.highlights/);
+  assert.doesNotMatch(html, /data\.highlights = recognized\.highlights/);
+  assert.doesNotMatch(html, /标题、亮点、标准和说明/);
   assert.match(html, /data\.days = clone\(demandState\.result\.data\.days\)/);
 });
 
