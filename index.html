@@ -82,8 +82,7 @@
       border: 0; background: transparent; color: var(--muted);
     }
     .import-menu .btn { padding: 0 10px; }
-    .import-menu .btn:hover, .settings-menu .btn:hover, .export-menu .btn:hover { background: var(--soft); }
-    .import-menu .btn:hover, .settings-menu .btn:hover, .export-menu .btn:hover { color: var(--ink); }
+    .import-menu .btn:hover, .settings-menu .btn:hover, .export-menu .btn:hover { color: var(--ink); background: var(--soft); }
     .btn {
       min-height: 42px; padding: 0 16px;
       display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -304,6 +303,22 @@
     }
     .preview-highlights h3 { margin: 0 0 7px; color: var(--ink); font-size: 15px; }
     .preview-highlights ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+    .route-map-editor-preview { padding: 14px; border-top: 1px solid var(--soft-line); background: #fdfdfd; }
+    .route-map-empty { padding: 24px 12px; color: var(--muted); background: var(--soft); border-radius: 10px; text-align: center; }
+    .preview-route-map {
+      margin: -8px 0 28px; padding: 18px; border: 1px solid #ffd1da; border-radius: var(--radius);
+      background: linear-gradient(135deg,#fff8fa,#f4f6f8); break-inside: avoid;
+    }
+    .route-map-head { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .route-map-head strong { color: var(--ink); font-size: 15px; }
+    .route-map-head small { color: var(--primary); font-size: 11px; font-weight: 700; }
+    .route-map-surface { overflow: hidden; border: 1px solid #e4e6e8; border-radius: 12px; background: #f7f8f8; }
+    .route-map-svg { display: block; width: 100%; height: auto; }
+    .route-map-bg { fill: none; stroke: #e5e8ea; stroke-width: 18; opacity: .8; }
+    .route-map-line { fill: none; stroke: var(--primary); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 8 7; }
+    .route-map-node { fill: var(--primary); stroke: #fff; stroke-width: 4; }
+    .route-map-label { fill: var(--ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
+    .route-map-day { fill: var(--muted); font-size: 10px; font-weight: 600; text-anchor: middle; }
     .preview-departure-notice {
       margin: -8px 0 28px; padding: 18px; border: 1px solid #ffd1da; border-radius: var(--radius);
       background: #fff8fa; break-inside: avoid;
@@ -507,13 +522,15 @@
         display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px;
       }
       .top-actions > div { min-width: 0; }
-      .top-actions .btn { width: 100%; min-height: 38px; padding: 0 12px; }
+      .top-actions .btn { width: 100%; min-width: 0; min-height: 38px; padding: 0 12px; }
       .mobile-tabs { top: 108px; }
       .demand-inline { grid-template-columns: 1fr; }
       .demand-inline .btn-primary { width: 100%; }
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .calendar-popover { width: min(310px, calc(100vw - 24px)); }
       .preview-shell { padding: 24px 17px; }
+      .preview-route-map { padding: 13px; }
+      .route-map-label { font-size: 11px; }
       .preview-title { font-size: 21px; }
       .preview-day { padding-left: 43px; }
       .preview-day-head { display: block; }
@@ -536,6 +553,7 @@
       .preview-kicker { margin-bottom: 18px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .preview-day { break-inside: avoid; margin-bottom: 14px; padding-bottom: 14px; }
       .preview-day-label, .info-list li::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .preview-route-map, .route-map-surface, .route-map-line, .route-map-node { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .info-section { break-inside: avoid; margin-top: 20px; padding-top: 15px; }
       body.print-with-letterhead .letterhead-page-bg {
         display: block; position: fixed; inset: 0; z-index: -1;
@@ -679,6 +697,16 @@
               <span class="section-title">行程亮点</span>
               <textarea id="highlightsInput" rows="4" placeholder="每行一项，默认隐藏"></textarea>
             </label>
+            <details class="day-card notice-card" id="routeMapEditor">
+              <summary>
+                <span class="notice-summary notice-summary-muted" id="routeMapSummary"><strong>行程地图</strong><small>根据当天路线自动生成</small></span>
+                <label class="visibility-toggle" title="控制客户版是否显示行程地图">
+                  <input id="routeMapVisible" type="checkbox">
+                  <span>显示</span>
+                </label>
+              </summary>
+              <div class="route-map-editor-preview" id="routeMapEditorPreview"></div>
+            </details>
             <details class="day-card notice-card" id="departureNoticeEditor">
               <summary>
                 <span class="notice-summary notice-summary-muted" id="departureNoticeSummary"><strong>出团通知</strong></span>
@@ -907,6 +935,9 @@
                 "weather": "重庆 24℃～31℃           成都 23℃～28℃"
         },
         "highlights": "",
+        "mapModule": {
+                "visible": true
+        },
         "notes": [
                 "游客须携带有效身份证件（因忘带或遗失导致无法乘机或入住酒店责任自理）；",
                 "游客自愿放弃餐食/住宿/景点或自愿离团，我社将不予返还费用；",
@@ -960,6 +991,84 @@
       const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
       const lines = value => String(value || "").split("\n").map(v => v.trim()).filter(Boolean);
       const weekdays = ["周日","周一","周二","周三","周四","周五","周六"];
+      function extractRouteStops(days = []) {
+        const stops = [];
+        days.forEach((day,index) => {
+          const names = String(day?.route || "")
+            .split(/\s*(?:—|–|-|→|➜|➡|>|\/|\n)\s*/)
+            .map(name => name.trim())
+            .filter(Boolean);
+          names.forEach(name => {
+            const dayNumber = index + 1;
+            const previous = stops[stops.length - 1];
+            if (previous?.name === name) previous.endDay = dayNumber;
+            else stops.push({name,startDay:dayNumber,endDay:dayNumber});
+          });
+        });
+        return stops;
+      }
+      function routeMapLayout(stops = []) {
+        const width = 720;
+        const margin = 74;
+        const perRow = 5;
+        return stops.map((stop,index) => {
+          const row = Math.floor(index / perRow);
+          const column = index % perRow;
+          const count = Math.min(perRow,stops.length - row * perRow);
+          const slot = row % 2 ? count - 1 - column : column;
+          const x = count === 1 ? width / 2 : margin + slot * (width - margin * 2) / (count - 1);
+          return {...stop,row,x,y:58 + row * 116};
+        });
+      }
+      function routeMapPath(points = []) {
+        return points.reduce((path,point,index) => {
+          if (!index) return `M ${point.x} ${point.y}`;
+          const previous = points[index - 1];
+          const midX = (previous.x + point.x) / 2;
+          const midY = (previous.y + point.y) / 2 + (previous.row === point.row ? (index % 2 ? -10 : 10) : 0);
+          return `${path} Q ${midX} ${midY} ${point.x} ${point.y}`;
+        },"");
+      }
+      function routeDayLabel(stop) {
+        return stop.startDay === stop.endDay ? `D${stop.startDay}` : `D${stop.startDay}–${stop.endDay}`;
+      }
+      function routeMapDisplayName(name) {
+        const value = String(name || "");
+        return value.length > 8 ? `${value.slice(0,7)}…` : value;
+      }
+      function renderRouteMapSurface(days = []) {
+        const stops = extractRouteStops(days);
+        if (!stops.length) return "";
+        const points = routeMapLayout(stops);
+        const height = points[points.length - 1].y + 58;
+        const nodes = points.map(point => `
+          <g>
+            <circle class="route-map-node" cx="${point.x}" cy="${point.y}" r="9"></circle>
+            <text class="route-map-label" x="${point.x}" y="${point.y + 27}"><title>${esc(point.name)}</title>${esc(routeMapDisplayName(point.name))}</text>
+            <text class="route-map-day" x="${point.x}" y="${point.y + 43}">${routeDayLabel(point)}</text>
+          </g>`).join("");
+        return `<div class="route-map-surface" data-map-provider="schematic">
+          <svg class="route-map-svg" viewBox="0 0 720 ${height}" role="img" aria-label="行程线路示意图">
+            <path class="route-map-bg" d="M -30 ${height * .28} C 120 ${height * .05} 220 ${height * .52} 390 ${height * .25} S 610 ${height * .08} 760 ${height * .32}"></path>
+            <path class="route-map-bg" d="M -30 ${height * .78} C 140 ${height * .52} 250 ${height * .98} 420 ${height * .7} S 610 ${height * .5} 760 ${height * .75}"></path>
+            <path class="route-map-line" d="${routeMapPath(points)}"></path>
+            ${nodes}
+          </svg>
+        </div>`;
+      }
+      function renderRouteMap(days = []) {
+        const surface = renderRouteMapSurface(days);
+        if (!surface) return "";
+        return `<section class="preview-route-map">
+          <div class="route-map-head"><strong>行程地图</strong><small>线路示意</small></div>
+          ${surface}
+        </section>`;
+      }
+      function renderMapEditorPreview() {
+        const container = $("#routeMapEditorPreview");
+        if (!container) return;
+        container.innerHTML = renderRouteMapSurface(data.days) || `<div class="route-map-empty">填写每日的“当天路线”后自动生成</div>`;
+      }
       let library = loadLibrary();
       let data = currentTask().data;
       let saveTimer;
@@ -970,6 +1079,7 @@
       const histories = {};
       const editRememberedTargets = new Set();
       let sizeObserver;
+      let listEditorResizeFrame = 0;
       let demandState = {busy:false,result:null,file:null};
       let confirmResolver = null;
       let deepseekSettings = loadDeepseekSettings();
@@ -1254,6 +1364,7 @@
       function blankTaskData() {
         return {
           title:"", highlights:"",
+          mapModule:{visible:false},
           departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
           quoteDetails:{visible:false,content:"",rows:defaultQuoteRows(),serviceFee:{enabled:false,rate:"8%"},tax:{enabled:false,rate:"6%"},note:""},
           days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",lodgingUrl:"",breakfast:"",lunch:"",dinner:"",flight:""}],
@@ -1517,7 +1628,8 @@
       function renderDeepseekStatus(message = "") {
         const bound = Boolean(deepseekSettings.apiKey);
         const checked = deepseekSettings.checkedAt ? `上次检查：${new Date(deepseekSettings.checkedAt).toLocaleString("zh-CN")}` : "尚未检查余额";
-        $("#deepseekStatus").innerHTML = `<strong>${bound ? "已绑定 DeepSeek" : "未绑定"}</strong><span>${message || (bound ? `${maskedKey(deepseekSettings.apiKey)} · ${deepseekSettings.model} · ${checked}` : "保存密钥后可测试连接并查看余额。")}</span>`;
+        const detail = message || (bound ? `${maskedKey(deepseekSettings.apiKey)} · ${deepseekSettings.model} · ${checked}` : "保存密钥后可测试连接并查看余额。");
+        $("#deepseekStatus").innerHTML = `<strong>${bound ? "已绑定 DeepSeek" : "未绑定"}</strong><span>${esc(detail)}</span>`;
         const balances = deepseekSettings.balance?.balance_infos || [];
         $("#deepseekBalance").hidden = !balances.length;
         $("#deepseekBalance").innerHTML = balances.map(item => `
@@ -1763,11 +1875,13 @@ ${text}`;
       function setRecognitionBusy(message) {
         setDemandBusy(message);
       }
-      function loadScriptOnce(src,globalName) {
+      function loadScriptOnce(src,globalName,integrity) {
         if (window[globalName]) return Promise.resolve(window[globalName]);
         return new Promise((resolve,reject) => {
           const script = document.createElement("script");
           script.src = src; script.async = true;
+          script.integrity = integrity;
+          script.crossOrigin = "anonymous";
           script.onload = () => window[globalName] ? resolve(window[globalName]) : reject(new Error("解析组件加载失败。"));
           script.onerror = () => reject(new Error("解析组件加载失败，请检查网络。"));
           document.head.appendChild(script);
@@ -1778,7 +1892,7 @@ ${text}`;
       }
       async function extractDocx(file) {
         setRecognitionBusy("正在加载 Word 解析组件…");
-        const mammoth = await loadScriptOnce("https://cdn.jsdelivr.net/npm/mammoth@1.9.1/mammoth.browser.min.js","mammoth");
+        const mammoth = await loadScriptOnce("https://cdn.jsdelivr.net/npm/mammoth@1.9.1/mammoth.browser.min.js","mammoth","sha384-Dmql2RDFhRnFI5K9k2OlF+n+0KL1nR4scY5Akjy8jw8GEbmChSzpsB6Q4Mv+xF0L");
         setRecognitionBusy("正在读取 Word 文本…");
         const result = await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
         const text = result?.value || "";
@@ -1801,7 +1915,7 @@ ${text}`;
       }
       async function extractPdf(file) {
         setRecognitionBusy("正在加载 PDF 解析组件…");
-        const pdfjsLib = await loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","pdfjsLib");
+        const pdfjsLib = await loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","pdfjsLib","sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e");
         pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
         setRecognitionBusy("正在读取 PDF 文本…");
         const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
@@ -2254,6 +2368,11 @@ ${text}`;
       }
       function renderEditor(openIndex = null) {
         $("#titleInput").value = data.title || "";
+        data.mapModule = {visible:Boolean(data.mapModule?.visible)};
+        const mapVisible = data.mapModule.visible;
+        $("#routeMapVisible").checked = mapVisible;
+        $("#routeMapSummary").classList.toggle("notice-summary-active",mapVisible);
+        $("#routeMapSummary").classList.toggle("notice-summary-muted",!mapVisible);
         data.departureNotice ||= {visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""};
         const departureVisible = Boolean(data.departureNotice.visible);
         $("#departureNoticeVisible").checked = departureVisible;
@@ -2290,11 +2409,13 @@ ${text}`;
               ${dayFieldHtml(day,index,"lodging")}
             </div>
           </details>`).join("") : `<div class="empty">还没有每日行程，点击“新增一天”开始编辑。</div>`;
+        renderMapEditorPreview();
         requestAnimationFrame(watchTextareaSizes);
       }
       function renderPreview() {
         document.title = data.title || "旅行线路定制";
         const notice = data.departureNotice || {};
+        const routeMap = data.mapModule?.visible ? renderRouteMap(data.days) : "";
         const departureNotice = notice.visible ? `
           <section class="preview-departure-notice">
             <dl class="notice-list">${noticeFields.filter(([field]) => requiredNoticeFields.has(field) || notice[field]).map(([field,label,,wide]) => `
@@ -2331,6 +2452,7 @@ ${text}`;
         $("#preview").innerHTML = `
           <h2 class="preview-title">${esc(data.title || "未命名旅行线路")}</h2>
           <div class="preview-kicker">${notice.visible ? "出团通知" : "参考行程"}</div>
+          ${routeMap}
           ${departureNotice}
           ${lines(data.highlights).length ? `<section class="preview-highlights"><h3>行程亮点</h3><ul>${lines(data.highlights).map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : ""}
           <div class="itinerary">${days || `<div class="empty">行程内容待添加</div>`}</div>
@@ -2338,7 +2460,7 @@ ${text}`;
       }
       function ensureLetterhead() {
         if (letterheadImageUrl) return true;
-        toast("请先在任务菜单中上传抬头纸");
+        toast("请先在“设置 → 抬头纸设置”中上传抬头纸");
         openLetterheadModal();
         return false;
       }
@@ -2409,6 +2531,20 @@ ${text}`;
         dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
       }
       $("#titleInput").addEventListener("input", e => { rememberEdit(e.target); data.title = e.target.value; renderPreview(); save(); });
+      $("#routeMapVisible").addEventListener("click", e => e.stopPropagation());
+      $("#routeMapVisible").addEventListener("change", e => {
+        if (e.target.checked && !extractRouteStops(data.days).length) {
+          e.target.checked = false;
+          toast("请先填写当天路线");
+          return;
+        }
+        remember();
+        data.mapModule = {visible:e.target.checked};
+        $("#routeMapSummary").classList.toggle("notice-summary-active",e.target.checked);
+        $("#routeMapSummary").classList.toggle("notice-summary-muted",!e.target.checked);
+        renderPreview(); save();
+        toast(e.target.checked ? "行程地图已显示" : "行程地图已隐藏");
+      });
       $("#departureNoticeVisible").addEventListener("click", e => e.stopPropagation());
       $("#departureNoticeVisible").addEventListener("change", e => {
         const missing = noticeFields.filter(([field]) => requiredNoticeFields.has(field) && !String(data.departureNotice?.[field] || "").trim()).map(([,label]) => label);
@@ -2544,7 +2680,10 @@ ${text}`;
           return;
         }
         const details = e.target.closest("details");
-        if (field === "route") details.querySelector("strong").textContent = e.target.value || "未填写路线";
+        if (field === "route") {
+          details.querySelector("strong").textContent = e.target.value || "未填写路线";
+          renderMapEditorPreview();
+        }
         renderPreview(); save();
       });
       $("#daysEditor").addEventListener("click", e => {
@@ -2745,6 +2884,13 @@ ${text}`;
         document.querySelectorAll(".mobile-tab").forEach(tab => tab.classList.toggle("active",tab === button));
         if (button.dataset.mode === "preview") window.scrollTo({top:0,behavior:"smooth"});
       }));
+      window.addEventListener("resize",() => {
+        if (listEditorResizeFrame) return;
+        listEditorResizeFrame = requestAnimationFrame(() => {
+          listEditorResizeFrame = 0;
+          autosizeListEditor();
+        });
+      },{passive:true});
       await loadLetterheadImage();
       renderAll();
       renderTaskMenu();

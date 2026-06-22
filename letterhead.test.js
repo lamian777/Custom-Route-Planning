@@ -4,6 +4,32 @@ const assert = require("node:assert/strict");
 
 const html = fs.readFileSync(new URL("./index.html", `file://${__dirname}/`), "utf8");
 
+function extractFunction(name) {
+  const start = html.indexOf(`function ${name}(`);
+  assert.notEqual(start,-1,`missing function ${name}`);
+  const bodyStart = html.indexOf("{",start);
+  let depth = 0;
+  let quote = "";
+  let escaped = false;
+  for (let index = bodyStart; index < html.length; index += 1) {
+    const character = html[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === quote) quote = "";
+      continue;
+    }
+    if (character === '"' || character === "'" || character === "`") quote = character;
+    else if (character === "{") depth += 1;
+    else if (character === "}" && --depth === 0) return html.slice(start,index + 1);
+  }
+  throw new Error(`unterminated function ${name}`);
+}
+
+function loadFunction(name) {
+  return Function(`${extractFunction(name)}\nreturn ${name};`)();
+}
+
 test("provides global letterhead settings and image storage", () => {
   assert.match(html, /id="letterheadSettingsBtn"/);
   assert.match(html, /id="letterheadModal"/);
@@ -36,7 +62,7 @@ test("places import and settings controls directly before export and outside the
   assert.doesNotMatch(taskMenu, /id="deepseekSettingsBtn"/);
   assert.doesNotMatch(taskMenu, /id="backupTasksBtn"/);
   assert.doesNotMatch(taskMenu, /id="restoreTasksBtn"/);
-  assert.match(topActions, /id="importTrigger"[^>]*>导入[\s\S]*?id="newBlankTaskBtn"[^>]*>新建空白<\/button>[\s\S]*?id="duplicateTaskBtn"[^>]*>复制当前<\/button>[\s\S]*?<div class="settings-switcher">/);
+  assert.match(topActions, /id="importTrigger"[^>]*>线路[\s\S]*?id="newBlankTaskBtn"[^>]*>新建线路<\/button>[\s\S]*?id="duplicateTaskBtn"[^>]*>复制线路<\/button>[\s\S]*?id="resetBtn"[^>]*>示例线路<\/button>[\s\S]*?<div class="settings-switcher">/);
   assert.doesNotMatch(topActions, /id="importReferenceBtn"/);
   assert.match(topActions, /id="settingsTrigger"[^>]*>设置[\s\S]*?id="deepseekSettingsBtn"[^>]*>API 设置<\/button>[\s\S]*?id="letterheadSettingsBtn"[^>]*>抬头纸设置<\/button>[\s\S]*?id="backupTasksBtn"[^>]*>备份任务库<\/button>[\s\S]*?id="restoreTasksBtn"[^>]*>恢复任务库<\/button>[\s\S]*?<div class="export-switcher">/);
 });
@@ -123,7 +149,7 @@ test("supports dragging reference itinerary files into a tidy aligned control", 
   assert.match(html, /<span>参考行程<\/span>/);
   assert.doesNotMatch(html, /<span>参考行程文件<\/span>/);
   assert.match(html, /\.demand-inline \{[^}]*grid-template-columns: minmax\(0,1fr\) auto/s);
-  assert.match(html, /\.demand-drop input, \.demand-inline \.btn-primary \{[^}]*height: 50px/s);
+  assert.match(html, /\.demand-file-zone, \.demand-inline \.btn-primary \{[^}]*height: 50px/s);
   assert.match(html, /function handleDemandFileDrop\(/);
   assert.match(html, /addEventListener\("dragover",handleDemandDragOver\)/);
   assert.match(html, /addEventListener\("drop",handleDemandFileDrop\)/);
@@ -145,10 +171,9 @@ test("customer demand recognition previews before applying to current task", () 
   assert.match(html, /data\.days = clone\(demandState\.result\.data\.days\)/);
 });
 
-test("keeps all four action menu triggers equal without an export arrow", () => {
+test("keeps all four top actions equal without decorative icons", () => {
   assert.match(html, /\.history-switcher > \.btn, \.import-switcher > \.btn, \.settings-switcher > \.btn, \.export-switcher > \.btn \{ width: 104px; \}/);
-  assert.match(html, /id="historyTrigger"[^>]*>撤销 <b/);
-  assert.match(html, /id="undoBtn"[^>]*>撤销<\/button>[\s\S]*?id="resetBtn"[^>]*>恢复示例<\/button>/);
+  assert.match(html, /id="undoBtn"[^>]*>撤销<\/button>/);
   assert.doesNotMatch(html, /id="undoBtn"[^>]*>[↶↺]/);
   assert.match(html, /id="exportTrigger"[^>]*>导出 <b/);
   assert.doesNotMatch(html, /id="exportTrigger"[^>]*><span[^>]*>⇩<\/span>/);
@@ -191,6 +216,76 @@ test("places highlights directly above departure notice and quote details", () =
   assert.match(html.slice(highlightsIndex), /id="highlightsInput"[\s\S]*?id="departureNoticeEditor"[\s\S]*?id="quoteDetailsEditor"/);
 });
 
+test("places an independently toggleable route map above departure notice", () => {
+  const highlightsIndex = html.indexOf('class="field highlights-field"');
+  const mapIndex = html.indexOf('id="routeMapEditor"');
+  const departureIndex = html.indexOf('id="departureNoticeEditor"');
+
+  assert.ok(highlightsIndex < mapIndex);
+  assert.ok(mapIndex < departureIndex);
+  assert.match(html, /id="routeMapVisible"/);
+  assert.match(html, /id="routeMapEditorPreview"/);
+});
+
+test("extracts route stops, merges adjacent repeats, and preserves return visits", () => {
+  const extractRouteStops = loadFunction("extractRouteStops");
+  const stops = extractRouteStops([
+    {route:"\u5927\u8fde \u2014 \u91cd\u5e86"},
+    {route:"\u91cd\u5e86 \u2192 \u6210\u90fd"},
+    {route:"\u6210\u90fd / \u4e50\u5c71"},
+    {route:"\u4e50\u5c71-\u5ce8\u7709\u5c71"},
+    {route:"\u5ce8\u7709\u5c71\n\u6210\u90fd"},
+    {route:"\u6210\u90fd > \u5927\u8fde"}
+  ]);
+
+  assert.deepEqual(stops,[
+    {name:"\u5927\u8fde",startDay:1,endDay:1},
+    {name:"\u91cd\u5e86",startDay:1,endDay:2},
+    {name:"\u6210\u90fd",startDay:2,endDay:3},
+    {name:"\u4e50\u5c71",startDay:3,endDay:4},
+    {name:"\u5ce8\u7709\u5c71",startDay:4,endDay:5},
+    {name:"\u6210\u90fd",startDay:5,endDay:6},
+    {name:"\u5927\u8fde",startDay:6,endDay:6}
+  ]);
+});
+
+test("lays out route map stops in rows of at most five", () => {
+  const routeMapLayout = loadFunction("routeMapLayout");
+  const points = routeMapLayout(Array.from({length:11},(_,index) => ({name:String(index)})));
+  assert.deepEqual(points.map(point => point.row),[0,0,0,0,0,1,1,1,1,1,2]);
+  assert.ok(points[5].x > points[6].x);
+});
+
+test("renders the route map before notice with safe defaults and future provider seam", () => {
+  assert.match(html, /"mapModule": \{\s*"visible": true\s*\}/);
+  assert.match(html, /mapModule:\{visible:false\}/);
+  assert.match(html, /data\.mapModule = \{visible:Boolean\(data\.mapModule\?\.visible\)\}/);
+  assert.match(html, /function renderRouteMap\(/);
+  assert.match(html, /data-map-provider="schematic"/);
+  assert.match(html, /class="route-map-svg"/);
+  assert.match(html, /\$\{routeMap\}[\s\S]*?\$\{departureNotice\}[\s\S]*?\$\{lines\(data\.highlights\)/);
+});
+
+test("builds escaped SVG route map output and omits empty routes", () => {
+  const source = ["extractRouteStops","routeMapLayout","routeMapPath","routeDayLabel","routeMapDisplayName","renderRouteMapSurface"]
+    .map(extractFunction).join("\n");
+  const renderRouteMapSurface = Function(`const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));\n${source}\nreturn renderRouteMapSurface;`)();
+
+  assert.equal(renderRouteMapSurface([{route:""}]),"");
+  const svg = renderRouteMapSurface([{route:"\u5927\u8fde—<\u91cd\u5e86&\u9152\u5e97"},{route:"<\u91cd\u5e86&\u9152\u5e97—\u6210\u90fd"}]);
+  assert.match(svg, /data-map-provider="schematic"/);
+  assert.equal((svg.match(/class="route-map-node"/g) || []).length,3);
+  assert.match(svg, /&lt;\u91cd\u5e86&amp;\u9152\u5e97/);
+  assert.doesNotMatch(svg, /<\u91cd\u5e86&\u9152\u5e97/);
+});
+
+test("guards empty route maps and keeps map output printable", () => {
+  assert.match(html, /if \(e\.target\.checked && !extractRouteStops\(data\.days\)\.length\)/);
+  assert.match(html, /toast\("\u8bf7\u5148\u586b\u5199\u5f53\u5929\u8def\u7ebf"\)/);
+  assert.match(html, /\.preview-route-map \{[^}]*break-inside: avoid/s);
+  assert.match(html, /\.route-map-svg \{[^}]*width: 100%[^}]*height: auto/s);
+});
+
 test("keeps departure notice hidden by default and renders it before highlights", () => {
   assert.match(html, /departureNotice:\{visible:false/);
   assert.match(html, /notice\.visible[\s\S]*?class="preview-departure-notice"/);
@@ -221,6 +316,11 @@ test("shows bullets in standards and notes editors without changing list data", 
   assert.match(html, /data-list-field="\$\{field\}"/);
   assert.match(html, /if \(e\.key === "Enter"\)/);
   assert.match(html, /syncListEditorData\(field\)/);
+});
+
+test("recalculates list row heights once per frame after viewport width changes", () => {
+  assert.match(html, /let listEditorResizeFrame = 0;/);
+  assert.match(html, /window\.addEventListener\("resize",\(\) => \{[\s\S]*?if \(listEditorResizeFrame\) return;[\s\S]*?listEditorResizeFrame = requestAnimationFrame\(\(\) => \{[\s\S]*?listEditorResizeFrame = 0;[\s\S]*?autosizeListEditor\(\);[\s\S]*?\}\);[\s\S]*?\},\{passive:true\}\);/);
 });
 
 test("styles lodging link button with Ctrip blue and white text", () => {
@@ -289,7 +389,30 @@ test("does not duplicate quote add button id", () => {
 test("keeps mobile header as two rows instead of squeezing task name away", () => {
   assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.topbar \{[^}]*flex-wrap: wrap/s);
   assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.top-actions \{[^}]*flex: 0 0 100%/s);
-  assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.top-actions \{[^}]*grid-template-columns: repeat\(3,minmax\(0,1fr\)\)/s);
+  assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.top-actions \{[^}]*grid-template-columns: repeat\(4,minmax\(0,1fr\)\)/s);
+  assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.top-actions \.btn \{[^}]*min-width: 0/s);
+});
+
+test("escapes API status details before inserting them into the page", () => {
+  assert.match(html, /const detail = message \|\| \(bound \?/);
+  assert.match(html, /<span>\$\{esc\(detail\)\}<\/span>/);
+});
+
+test("pins remote document parsers with integrity metadata", () => {
+  assert.match(html, /function loadScriptOnce\(src,globalName,integrity\)/);
+  assert.match(html, /script\.integrity = integrity/);
+  assert.match(html, /script\.crossOrigin = "anonymous"/);
+  assert.match(html, /mammoth\.browser\.min\.js","mammoth","sha384-/);
+  assert.match(html, /pdf\.min\.js","pdfjsLib","sha384-/);
+});
+
+test("uses the current settings path in the missing letterhead message", () => {
+  assert.match(html, /toast\("请先在“设置 → 抬头纸设置”中上传抬头纸"\)/);
+});
+
+test("does not duplicate the action menu hover selector", () => {
+  const selector = ".import-menu .btn:hover, .settings-menu .btn:hover, .export-menu .btn:hover";
+  assert.equal(html.split(selector).length - 1,1);
 });
 
 test("keeps header save state label fixed as Kevin-SZ", () => {
