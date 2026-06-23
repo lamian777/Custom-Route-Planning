@@ -63,7 +63,14 @@
     .task-select {
       min-width: 0; padding: 9px 10px; border: 0; border-radius: 9px; background: transparent; text-align: left;
     }
-    .task-select:hover, .task-item.active .task-select { background: var(--soft); }
+    .task-select:hover { background: var(--soft); }
+    .task-item.active .task-select {
+      position: relative; background: #fff1f4;
+    }
+    .task-item.active .task-select::before {
+      content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px;
+      background: var(--primary); border-radius: 999px;
+    }
     .task-select strong, .task-select small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .task-select small { color: var(--muted); font-size: 11px; font-weight: 400; }
     .task-delete { padding: 7px 8px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 12px; }
@@ -98,14 +105,14 @@
     .btn-small { min-height: 34px; padding: 0 11px; border-radius: 9px; font-size: 13px; }
     .workspace {
       width: min(1600px, 100%); min-height: calc(100vh - 72px); margin: auto; padding: 20px;
-      display: grid; grid-template-columns: minmax(420px, .92fr) minmax(520px, 1.08fr); gap: 20px;
+      display: grid; grid-template-columns: minmax(420px, .92fr) minmax(520px, 1.08fr); gap: 20px; align-items: start;
     }
     .panel {
       min-width: 0; background: var(--canvas); border: 1px solid var(--soft-line);
       border-radius: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.03); overflow: hidden;
     }
-    .editor-panel { display: flex; flex-direction: column; }
-    .editor-scroll { padding: 20px; overflow: visible; }
+    .editor-panel { min-height: 0; display: flex; flex-direction: column; }
+    .editor-scroll { min-height: 0; padding: 20px; overflow-x: hidden; overflow-y: auto; }
     .editor-group + .editor-group {
       margin-top: 20px;
     }
@@ -156,17 +163,12 @@
       min-height: 76px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
       background: #fff; transition: border-color .15s;
     }
-    .bullet-list-editor:focus-within { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
-    .bullet-list-row { position: relative; padding-left: 17px; }
+    .bullet-list-editor:focus { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); outline: none; }
+    .bullet-list-row { position: relative; min-height: 22px; padding-left: 17px; line-height: 1.55; }
     .bullet-list-row::before {
       content: ""; position: absolute; left: 0; top: .72em; width: 5px; height: 5px;
       background: var(--primary); border-radius: 50%;
     }
-    .bullet-list-row textarea {
-      min-height: 22px; padding: 0; border: 0; border-radius: 0; background: transparent;
-      resize: none; overflow: hidden; line-height: 1.55;
-    }
-    .bullet-list-row textarea:focus { box-shadow: none; }
     .demand-inline { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 10px; }
     .demand-inline .field { margin-bottom: 0; }
     .demand-file-zone, .demand-inline .btn-primary { height: 50px; }
@@ -674,14 +676,14 @@
           <section class="section">
             <h3 class="section-title">接待标准</h3>
             <label class="field">
-              <div class="bullet-list-editor" id="standardsInput" data-list-editor="standards"></div>
+              <div class="bullet-list-editor" id="standardsInput" data-list-editor="standards" contenteditable="plaintext-only" role="textbox" aria-multiline="true" spellcheck="false"></div>
             </label>
           </section>
 
           <section class="section">
             <h3 class="section-title">特别说明</h3>
             <label class="field">
-              <div class="bullet-list-editor" id="notesInput" data-list-editor="notes"></div>
+              <div class="bullet-list-editor" id="notesInput" data-list-editor="notes" contenteditable="plaintext-only" role="textbox" aria-multiline="true" spellcheck="false"></div>
             </label>
           </section>
         </div>
@@ -970,14 +972,14 @@
                 "景点：行程内所列项目首道门票（不含自费）；",
                 "保险：旅行社责任险、旅游意外险，最终解决权归保险公司；"
         ],
-        "title": "08.01 重庆、成都双飞6日游"
+        "title": "07.16 重庆、成都双飞6日游"
 };
       const fields = [
         ["route","当天路线","例如：大连 — 重庆","input"],
         ["date","日期","","date"], ["flight","交通方式","交通工具、班次或时间","input"],
         ["morning","午前安排","填写午前活动","textarea"], ["afternoon","午后安排","填写午后活动","textarea"],
-        ["remark","备注","选填，默认不显示","textarea"], ["lodging","住宿","例如：重庆市区酒店","input"], ["breakfast","早餐","例如：酒店含","input"],
-        ["lunch","午餐","例如：集体用餐","input"], ["dinner","晚餐","例如：自理","input"]
+        ["remark","备注","选填，默认不显示","textarea"], ["lodging","住宿","","input"], ["breakfast","早餐","酒店含","input"],
+        ["lunch","午餐","","input"], ["dinner","晚餐","","input"]
       ];
       const fieldMap = Object.fromEntries(fields.map(field => [field[0],field]));
       const noticeFields = [
@@ -1079,7 +1081,6 @@
       const histories = {};
       const editRememberedTargets = new Set();
       let sizeObserver;
-      let listEditorResizeFrame = 0;
       let demandState = {busy:false,result:null,file:null};
       let confirmResolver = null;
       let deepseekSettings = loadDeepseekSettings();
@@ -1335,12 +1336,18 @@
           const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
           if (saved && Array.isArray(saved.days)) return normalizeSavedDates(saved);
         } catch (_) {}
-        return clone(example);
+        return normalizeSavedDates(clone(example));
       }
       function loadLibrary() {
         try {
           const saved = JSON.parse(localStorage.getItem(LIBRARY_KEY));
-          if (saved?.version === 1 && Array.isArray(saved.tasks) && saved.tasks.length) return saved;
+          if (saved?.version === 1 && Array.isArray(saved.tasks) && saved.tasks.length) {
+            saved.tasks.forEach(task => {
+              if (Array.isArray(task?.data?.days)) normalizeSavedDates(task.data);
+            });
+            if (!saved.tasks.some(task => task.id === saved.currentId)) saved.currentId = saved.tasks[0].id;
+            return saved;
+          }
         } catch (_) {}
         const id = uid();
         return { version:1, currentId:id, tasks:[{id,data:loadLegacy(),updatedAt:Date.now()}] };
@@ -1367,7 +1374,7 @@
           mapModule:{visible:false},
           departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
           quoteDetails:{visible:false,content:"",rows:defaultQuoteRows(),serviceFee:{enabled:false,rate:"8%"},tax:{enabled:false,rate:"6%"},note:""},
-          days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",lodgingUrl:"",breakfast:"",lunch:"",dinner:"",flight:""}],
+          days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",lodgingUrl:"",breakfast:"酒店含",lunch:"",dinner:"",flight:""}],
           standards:clone(example.standards), notes:clone(example.notes), _heights:clone(data?._heights || {})
         };
       }
@@ -1400,6 +1407,7 @@
             day.weekday = weekdays[parsed.getDay()];
           }
         });
+        saved.title = normalizeRecognizedTitle(saved.title,saved.days[0]?.date);
         return saved;
       }
       function syncDates(anchorIndex, value) {
@@ -1409,6 +1417,7 @@
             day.date = "";
             day.weekday = "";
           });
+          data.title = normalizeRecognizedTitle(data.title,data.days[0]?.date);
           return;
         }
         data.days.forEach((day,index) => {
@@ -1417,6 +1426,7 @@
           day.date = toIso(date);
           day.weekday = weekdays[date.getDay()];
         });
+        data.title = normalizeRecognizedTitle(data.title,data.days[0]?.date);
       }
       function persistLibrary() {
         const task = currentTask();
@@ -1662,6 +1672,41 @@
         }
         return null;
       }
+      function normalizeRecognizedTitle(title, firstDate) {
+        const cleanTitle = String(title || "").trim().replace(/^\s*(?:\d{1,2}[./-]\d{1,2}|\d{1,2}月\d{1,2}日)\s*/,"");
+        const date = String(firstDate || "").match(/^\d{4}-(\d{2})-(\d{2})$/);
+        return date && cleanTitle ? `${date[1]}.${date[2]} ${cleanTitle}` : cleanTitle;
+      }
+      function mergeRecognitionList(existing, recognized) {
+        const clean = values => (Array.isArray(values) ? values : []).map(value => String(value || "").trim()).filter(Boolean);
+        const meaningText = value => String(value || "")
+          .replace(/^[^：:]{1,12}[：:]/,"")
+          .replace(/[\s，。；、：:（）()【】“”‘’\-—]/g,"")
+          .toLowerCase();
+        const sameMeaning = (leftValue,rightValue) => {
+          const left = meaningText(leftValue), right = meaningText(rightValue);
+          if (!left || !right) return false;
+          if (left === right) return true;
+          const shorter = left.length <= right.length ? left : right;
+          const longer = left.length > right.length ? left : right;
+          if (shorter.length >= 8 && longer.includes(shorter) && shorter.length / longer.length >= .72) return true;
+          if (shorter.length < 8) return false;
+          const bigrams = value => new Set([...Array(value.length - 1)].map((_,index) => value.slice(index,index + 2)));
+          const leftPairs = bigrams(left), rightPairs = bigrams(right);
+          let overlap = 0;
+          leftPairs.forEach(pair => { if (rightPairs.has(pair)) overlap += 1; });
+          return 2 * overlap / (leftPairs.size + rightPairs.size) >= .76;
+        };
+        const result = clean(existing);
+        clean(recognized).forEach(item => {
+          if (result.some(current => sameMeaning(current,item))) return;
+          const key = item.match(/^([^：:]{1,12})[：:]/)?.[1].trim();
+          const matchIndex = key ? result.findIndex(current => current.match(/^([^：:]{1,12})[：:]/)?.[1].trim() === key) : result.indexOf(item);
+          if (matchIndex >= 0) result[matchIndex] = item;
+          else result.push(item);
+        });
+        return [...new Set(result)];
+      }
       function normalizeImportedResult(raw) {
         const text = value => typeof value === "string" ? value.trim() : "";
         const list = value => Array.isArray(value) ? value.map(text).filter(Boolean) : [];
@@ -1715,8 +1760,9 @@
           warnings.push("文件未提供年份，已按最近尚未过去的日期自动推算。");
         }
         const taskData = {
-          title:text(raw?.title), days,
-          standards:list(raw?.standards), notes:list(raw?.notes), _heights:clone(data?._heights || {})
+          title:normalizeRecognizedTitle(text(raw?.title) || data.title,days[0]?.date), days,
+          standards:mergeRecognitionList(data.standards,list(raw?.standards)),
+          notes:mergeRecognitionList(data.notes,list(raw?.notes)), _heights:clone(data?._heights || {})
         };
         return {data:taskData,warnings:[...new Set(warnings)],missingFields:[...new Set(missingFields)]};
       }
@@ -1831,6 +1877,8 @@
       function demandPrompt(text, sourceLabel = "客户需求") {
         const currentDays = data.days?.length || 0;
         const currentRoutes = (data.days || []).map((day,index) => `D${index + 1} ${day.route || ""}`).join("\n");
+        const currentStandards = (data.standards || []).join("\n");
+        const currentNotes = (data.notes || []).join("\n");
         return `请根据下面的${sourceLabel}生成或提取旅行线路，并严格输出 JSON。
 规则：
 1. 优先遵守客户明确提出的目的地、天数、预算、酒店标准、餐饮、交通和节奏偏好。
@@ -1840,12 +1888,20 @@
 5. missingFields 列出仍需人工补充的重要栏目，warnings 列出推断、歧义、无法确认或可能需要人工确认的内容。
 6. 如果完全无法识别或生成每日行程，days 返回空数组，不要输出解释。
 7. 识别范围仅限 02 基础内容，不要提取、生成或修改 03 附加板块，包括行程亮点、出团通知、报价明细。
-8. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
+8. 景点名称必须使用中文方括号【】标注，例如【青城山】【乐山大佛】；同一景点每次出现都要保持这一格式。
+9. 午前、午后的行程文案必须写成完整、自然的游览句。禁止只罗列景点名称；在不编造硬性事实的前提下，为景点补充一至两句简短的特色、体验或景观描述，增加阅读性。
+10. 标题必须以首日出发日期开头，格式为 MM.DD，例如“08.01 重庆、成都双飞6日游”。
+11. 接待标准和特别说明必须以当前已有内容为底稿：保留仍适用的条目，按本次线路修改需要变化的条目，并增加缺少的条目，不得无故清空或整组省略。若新内容与已有条目意思相同，必须原样返回已有条目，不要改写措辞。
+12. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
 
 当前线路标题：${data.title || "未填写"}
 当前已有天数：${currentDays || "未填写"}
 当前已有路线：
 ${currentRoutes || "无"}
+当前接待标准：
+${currentStandards || "无"}
+当前特别说明：
+${currentNotes || "无"}
 
 JSON 格式：
 {"title":"","days":[{"date":"","route":"","flight":"","morning":"","afternoon":"","remark":"","lodging":"","breakfast":"","lunch":"","dinner":""}],"standards":[],"notes":[],"warnings":[],"missingFields":[]}
@@ -2080,14 +2136,19 @@ ${text}`;
         const previous = data.days[index - 1];
         const date = previous ? parseDate(previous.date) : null;
         if (date) date.setDate(date.getDate() + 1);
-        return { date:date ? toIso(date) : "", weekday:date ? weekdays[date.getDay()] : "", route:`第${index + 1}天路线`, morning:"", afternoon:"", remark:"", lodging:"", lodgingUrl:"", breakfast:"", lunch:"", dinner:"", flight:"" };
+        return { date:date ? toIso(date) : "", weekday:date ? weekdays[date.getDay()] : "", route:`第${index + 1}天路线`, morning:"", afternoon:"", remark:"", lodging:"", lodgingUrl:"", breakfast:"酒店含", lunch:"", dinner:"", flight:"" };
+      }
+      function safeTextareaHeight(value) {
+        const number = Number(value);
+        return Number.isFinite(number) && number > 0 ? Math.max(44,Math.min(1200,Math.round(number))) : 0;
       }
       function fieldHtml(day, index, field) {
         const [key,label,placeholder,type] = field;
         const value = esc(day[key]);
+        const savedHeight = safeTextareaHeight(data._heights?.[key]);
         if (type === "date") return `<div class="field date-picker-wrap"><span>${label}</span><button class="date-trigger" type="button" data-calendar-index="${index}"><span class="${day.date ? "" : "placeholder"}">${day.date ? esc(day.date.replaceAll("-","/")) : "选择日期"}</span><b aria-hidden="true">▣</b></button></div>`;
         return `<label class="field"><span>${label}</span>${type === "textarea"
-          ? `<textarea data-index="${index}" data-field="${key}" placeholder="${placeholder}" ${data._heights?.[key] ? `style="height:${data._heights[key]}px"` : ""}>${value}</textarea>`
+          ? `<textarea data-index="${index}" data-field="${key}" placeholder="${placeholder}" ${savedHeight ? `style="height:${savedHeight}px"` : ""}>${value}</textarea>`
           : `<input type="text" data-index="${index}" data-field="${key}" value="${value}" placeholder="${placeholder}">`}</label>`;
       }
       function lodgingFieldHtml(day, index) {
@@ -2098,7 +2159,7 @@ ${text}`;
             <span>住宿</span>
             <button class="lodging-link-toggle ${expanded ? "active" : ""}" type="button" data-lodging-link-toggle="${index}" aria-expanded="${expanded}">携程链接</button>
           </div>
-          <input class="${expanded ? "lodging-linked-text" : ""}" type="text" data-index="${index}" data-field="lodging" value="${esc(day.lodging)}" placeholder="例如：重庆市区酒店">
+          <input class="${expanded ? "lodging-linked-text" : ""}" type="text" data-index="${index}" data-field="lodging" value="${esc(day.lodging)}" placeholder="">
           <input class="lodging-link-input" type="url" data-index="${index}" data-field="lodgingUrl" value="${url}" placeholder="粘贴携程酒店链接" ${expanded ? "" : "hidden"}>
         </div>`;
       }
@@ -2108,7 +2169,8 @@ ${text}`;
       }
       function applyGlobalHeight(id) {
         const element = $(`#${id}`);
-        element.style.height = data._heights?.[id] ? `${data._heights[id]}px` : "";
+        const savedHeight = safeTextareaHeight(data._heights?.[id]);
+        element.style.height = savedHeight ? `${savedHeight}px` : "";
       }
       function minimizeEmptyTextarea(textarea) {
         if (!textarea.matches("textarea:not([data-list-field]):not(.quote-cell-text)")) return;
@@ -2225,7 +2287,7 @@ ${text}`;
         }
       }
       function lodgingPreviewHtml(day) {
-        const label = esc(day.lodging || "待定");
+        const label = esc(day.lodging || "—");
         const href = datedHotelUrl(day.lodgingUrl,day.date);
         if (!href || !/^https?:\/\//i.test(href)) return label;
         return `<a class="lodging-preview-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
@@ -2319,35 +2381,55 @@ ${text}`;
       }
       function listEditorRowsHtml(field, items) {
         const rows = items?.length ? items : [""];
-        return rows.map((value,index) => `
-          <div class="bullet-list-row">
-            <textarea rows="1" data-list-field="${field}" data-list-index="${index}">${esc(value)}</textarea>
-          </div>`).join("");
-      }
-      function autosizeListEditor(scope = document) {
-        scope.querySelectorAll("[data-list-field]").forEach(textarea => {
-          textarea.style.height = "auto";
-          textarea.style.height = `${textarea.scrollHeight}px`;
-        });
+        return rows.map((value,index) => `<div class="bullet-list-row" data-list-row="${index}">${value ? esc(value) : "<br>"}</div>`).join("");
       }
       function listEditorValues(field) {
-        return [...document.querySelectorAll(`[data-list-field="${field}"]`)].map(input => input.value);
+        const editor = document.querySelector(`[data-list-editor="${field}"]`);
+        return editor ? [...editor.querySelectorAll("[data-list-row]")].map(row => row.textContent || "") : [];
       }
-      function syncListEditorData(field) {
-        data[field] = listEditorValues(field).map(item => item.trim()).filter(Boolean);
+      function listEditorSelectionOffsets(editor) {
+        const selection = window.getSelection();
+        if (!selection?.rangeCount || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return null;
+        const rows = [...editor.querySelectorAll("[data-list-row]")];
+        const endpointOffset = (node,offset) => {
+          if (node === editor) return rows.slice(0,offset).reduce((total,row) => total + row.textContent.length + 1,0);
+          const element = node.nodeType === 1 ? node : node.parentElement;
+          const row = element?.closest("[data-list-row]");
+          const rowIndex = rows.indexOf(row);
+          if (rowIndex < 0) return 0;
+          const before = rows.slice(0,rowIndex).reduce((total,item) => total + item.textContent.length + 1,0);
+          const range = document.createRange();
+          range.selectNodeContents(row);
+          range.setEnd(node,offset);
+          return before + range.toString().length;
+        };
+        const anchor = endpointOffset(selection.anchorNode,selection.anchorOffset);
+        const focus = endpointOffset(selection.focusNode,selection.focusOffset);
+        return {start:Math.min(anchor,focus),end:Math.max(anchor,focus)};
       }
-      function rerenderListEditor(editor, field, items, focusIndex) {
-        data[field] = items.map(item => item.trim()).filter(Boolean);
-        editor.innerHTML = listEditorRowsHtml(field,items);
-        autosizeListEditor(editor);
-        renderPreview(); save(); focusListRow(field,focusIndex);
-      }
-      function focusListRow(field, index) {
-        requestAnimationFrame(() => {
-          const input = document.querySelector(`[data-list-field="${field}"][data-list-index="${index}"]`);
-          input?.focus();
-          input?.setSelectionRange(input.value.length,input.value.length);
-        });
+      function setListEditorSelection(editor, start, end = start) {
+        const rows = [...editor.querySelectorAll("[data-list-row]")];
+        const locate = requested => {
+          let remaining = Math.max(0,requested);
+          for (const row of rows) {
+            const length = row.textContent.length;
+            if (remaining <= length) {
+              const text = [...row.childNodes].find(node => node.nodeType === 3);
+              return text ? {node:text,offset:Math.min(remaining,text.textContent.length)} : {node:row,offset:0};
+            }
+            remaining -= length + 1;
+          }
+          const row = rows.at(-1);
+          const text = row && [...row.childNodes].find(node => node.nodeType === 3);
+          return text ? {node:text,offset:text.textContent.length} : {node:row || editor,offset:0};
+        };
+        const from = locate(start), to = locate(end);
+        const range = document.createRange();
+        range.setStart(from.node,from.offset);
+        range.setEnd(to.node,to.offset);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
       }
       function updateQuoteComputed() {
         data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
@@ -2385,7 +2467,6 @@ ${text}`;
         applyGlobalHeight("highlightsInput");
         $("#standardsInput").innerHTML = listEditorRowsHtml("standards",data.standards);
         $("#notesInput").innerHTML = listEditorRowsHtml("notes",data.notes);
-        autosizeListEditor();
         data.quoteDetails = normalizeQuoteDetails(data.quoteDetails);
         const quoteVisible = Boolean(data.quoteDetails.visible);
         $("#quoteDetailsVisible").checked = quoteVisible;
@@ -2457,6 +2538,7 @@ ${text}`;
           ${lines(data.highlights).length ? `<section class="preview-highlights"><h3>行程亮点</h3><ul>${lines(data.highlights).map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : ""}
           <div class="itinerary">${days || `<div class="empty">行程内容待添加</div>`}</div>
           ${list("接待标准",data.standards)}${list("特别说明",data.notes)}${quoteDetailsPreview}`;
+        requestAnimationFrame(syncEditorHeightToPreview);
       }
       function ensureLetterhead() {
         if (letterheadImageUrl) return true;
@@ -2494,6 +2576,29 @@ ${text}`;
         };
         window.addEventListener("afterprint",cleanup);
         window.print();
+      }
+      function syncEditorHeightToPreview() {
+        const editorPanel = $(".editor-panel");
+        const previewPanel = $(".preview-panel");
+        if (!editorPanel || !previewPanel) return;
+        if (matchMedia("(max-width: 900px)").matches) {
+          editorPanel.style.height = "";
+          return;
+        }
+        editorPanel.style.height = `${previewPanel.offsetHeight}px`;
+      }
+      function routeEditorWheel(event) {
+        if (event.ctrlKey || matchMedia("(max-width: 900px)").matches) return;
+        const editorPanel = $(".editor-panel");
+        const editorScroll = $(".editor-scroll");
+        const pointerTarget = document.elementFromPoint(event.clientX,event.clientY);
+        if (!editorPanel || !editorScroll || !pointerTarget || !editorPanel.contains(pointerTarget)) return;
+        const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * window.innerHeight : event.deltaY;
+        const maxScroll = editorScroll.scrollHeight - editorScroll.clientHeight;
+        const canScroll = delta < 0 ? editorScroll.scrollTop > 0 : delta > 0 && editorScroll.scrollTop < maxScroll;
+        if (!canScroll) return;
+        event.preventDefault();
+        editorScroll.scrollTop += delta;
       }
       function renderAll(openIndex = null) { renderEditor(openIndex); minimizeEmptyTextareas($(".editor-panel")); renderPreview(); }
       function addDay() {
@@ -2629,37 +2734,34 @@ ${text}`;
       });
       $("#highlightsInput").addEventListener("input", e => { rememberEdit(e.target); data.highlights = e.target.value; renderPreview(); save(); });
       document.querySelectorAll("[data-list-editor]").forEach(editor => {
-        editor.addEventListener("input", e => {
-          const field = e.target.dataset.listField;
-          if (!field) return;
-          rememberEdit(e.target);
-          autosizeListEditor(editor);
-          syncListEditorData(field);
+        const field = editor.dataset.listEditor;
+        const syncContinuousEditor = () => {
+          const selection = listEditorSelectionOffsets(editor);
+          let items = [...editor.querySelectorAll("[data-list-row]")].map(row => row.textContent || "");
+          if (!items.length) items = (editor.innerText || "").replace(/\r/g,"").split("\n");
+          rememberEdit(editor);
+          data[field] = items.map(item => item.trim()).filter(Boolean);
+          editor.innerHTML = listEditorRowsHtml(field,items);
+          if (selection) setListEditorSelection(editor,selection.start,selection.end);
           renderPreview(); save();
+        };
+        editor.addEventListener("input", e => {
+          if (!e.isComposing) syncContinuousEditor();
         });
+        editor.addEventListener("compositionend",syncContinuousEditor);
         editor.addEventListener("keydown", e => {
-          const field = e.target.dataset.listField;
-          if (!field) return;
-          const index = Number(e.target.dataset.listIndex);
-          if (e.key === "Enter") {
-            e.preventDefault();
-            remember();
-            const value = e.target.value;
-            const start = e.target.selectionStart;
-            const end = e.target.selectionEnd;
-            const before = value.slice(0,start), after = value.slice(end);
-            const items = listEditorValues(field);
-            items[index] = before;
-            items.splice(index + 1,0,after);
-            rerenderListEditor(editor,field,items,index + 1);
-          }
-          if (e.key === "Backspace" && !e.target.value && document.querySelectorAll(`[data-list-field="${field}"]`).length > 1) {
-            e.preventDefault();
-            remember();
-            const items = listEditorValues(field);
-            items.splice(index,1);
-            rerenderListEditor(editor,field,items,Math.max(0,index - 1));
-          }
+          if (e.key !== "Enter") return;
+          const selection = listEditorSelectionOffsets(editor);
+          if (!selection) return;
+          e.preventDefault();
+          remember();
+          const text = listEditorValues(field).join("\n");
+          const next = `${text.slice(0,selection.start)}\n${text.slice(selection.end)}`;
+          const items = next.split("\n");
+          data[field] = items.map(item => item.trim()).filter(Boolean);
+          editor.innerHTML = listEditorRowsHtml(field,items);
+          setListEditorSelection(editor,selection.start + 1);
+          renderPreview(); save();
         });
       });
       $("#daysEditor").addEventListener("input", e => {
@@ -2870,7 +2972,7 @@ ${text}`;
         closeImportMenu();
         if (!await askConfirmation("当前线路中的修改将被最新版示例覆盖。","确定恢复最新版示例吗？")) return;
         remember();
-        data = clone(example); renderAll(); save(); toast("已恢复最新版示例");
+        data = normalizeSavedDates(clone(example)); renderAll(); save(); toast("已恢复最新版示例");
       });
       $("#addDayBottom").addEventListener("click",addDay);
       $("#exportTrigger").addEventListener("click",() => toggleMenu("exportTrigger","exportMenu"));
@@ -2884,13 +2986,8 @@ ${text}`;
         document.querySelectorAll(".mobile-tab").forEach(tab => tab.classList.toggle("active",tab === button));
         if (button.dataset.mode === "preview") window.scrollTo({top:0,behavior:"smooth"});
       }));
-      window.addEventListener("resize",() => {
-        if (listEditorResizeFrame) return;
-        listEditorResizeFrame = requestAnimationFrame(() => {
-          listEditorResizeFrame = 0;
-          autosizeListEditor();
-        });
-      },{passive:true});
+      document.addEventListener("wheel",routeEditorWheel,{passive:false,capture:true});
+      window.addEventListener("resize",() => requestAnimationFrame(syncEditorHeightToPreview),{passive:true});
       await loadLetterheadImage();
       renderAll();
       renderTaskMenu();

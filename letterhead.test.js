@@ -3,6 +3,18 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const html = fs.readFileSync(new URL("./index.html", `file://${__dirname}/`), "utf8");
+const skill = fs.readFileSync(new URL("./SKILL.md", `file://${__dirname}/`), "utf8");
+
+test("parses the complete inline application script", () => {
+  const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(match => match[1]).filter(Boolean);
+  assert.equal(scripts.length,1);
+  assert.doesNotThrow(() => new Function(scripts[0]));
+});
+
+test("keeps static element ids unique", () => {
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(ids.filter((id,index) => ids.indexOf(id) !== index),[]);
+});
 
 function extractFunction(name) {
   const start = html.indexOf(`function ${name}(`);
@@ -140,8 +152,18 @@ test("minimizes empty resizable textareas until they contain content", () => {
   assert.match(html, /delete data\._heights\[key\]/);
   assert.match(html, /\.editor-panel"\)\.addEventListener\("input",[\s\S]*?minimizeEmptyTextarea/);
   assert.match(html, /<textarea id="customerDemandInput" rows="5"/);
-  assert.match(html, /\.bullet-list-row textarea \{[^}]*resize: none/s);
+  assert.match(html, /\.bullet-list-row \{[^}]*min-height: 22px/s);
   assert.match(html, /function autosizeQuoteTextareas\(/);
+});
+
+test("uses continuous multiline editors for native mouse selection", () => {
+  assert.match(html, /id="standardsInput"[^>]*contenteditable="plaintext-only"/);
+  assert.match(html, /id="notesInput"[^>]*contenteditable="plaintext-only"/);
+  assert.match(html, /class="bullet-list-row" data-list-row="\$\{index\}"/);
+  assert.match(html, /return rows\.map\(\(value,index\) => `<div/);
+  assert.doesNotMatch(html, /<textarea[^>]*data-list-field/);
+  assert.match(html, /function listEditorSelectionOffsets\(/);
+  assert.match(html, /function setListEditorSelection\(/);
 });
 
 test("supports dragging reference itinerary files into a tidy aligned control", () => {
@@ -177,6 +199,74 @@ test("keeps all four top actions equal without decorative icons", () => {
   assert.doesNotMatch(html, /id="undoBtn"[^>]*>[↶↺]/);
   assert.match(html, /id="exportTrigger"[^>]*>导出 <b/);
   assert.doesNotMatch(html, /id="exportTrigger"[^>]*><span[^>]*>⇩<\/span>/);
+});
+
+test("keeps the currently edited route visually fixed while hovering", () => {
+  assert.match(html, /\.task-item\.active \.task-select \{[^}]*position: relative[^}]*background: #fff1f4/s);
+  assert.match(html, /\.task-item\.active \.task-select::before \{[^}]*left: 0[^}]*top: 5px[^}]*bottom: 5px[^}]*width: 3px[^}]*background: var\(--primary\)/s);
+  assert.doesNotMatch(html, /\.task-item\.active \.task-select:hover/);
+  assert.doesNotMatch(html, /\.task-item\.active \.task-select \{[^}]*box-shadow:/s);
+});
+
+test("prefixes recognized titles with the first departure date", () => {
+  const normalizeRecognizedTitle = loadFunction("normalizeRecognizedTitle");
+
+  assert.equal(normalizeRecognizedTitle("重庆、成都双飞6日游","2026-08-01"),"08.01 重庆、成都双飞6日游");
+  assert.equal(normalizeRecognizedTitle("08.01 重庆、成都双飞6日游","2026-07-16"),"07.16 重庆、成都双飞6日游");
+  assert.equal(normalizeRecognizedTitle("7月20日 重庆、成都双飞6日游","2026-08-01"),"08.01 重庆、成都双飞6日游");
+  assert.equal(normalizeRecognizedTitle("07/20 重庆、成都双飞6日游","2026-08-01"),"08.01 重庆、成都双飞6日游");
+  assert.equal(normalizeRecognizedTitle("重庆、成都双飞6日游",""),"重庆、成都双飞6日游");
+  assert.match(html, /title:normalizeRecognizedTitle\(text\(raw\?\.title\) \|\| data\.title,days\[0\]\?\.date\)/);
+  assert.match(html, /saved\.title = normalizeRecognizedTitle\(saved\.title,saved\.days\[0\]\?\.date\)/);
+  assert.match(html, /data\.title = normalizeRecognizedTitle\(data\.title,data\.days\[0\]\?\.date\)/);
+});
+
+test("keeps the bundled example title aligned with its first day", () => {
+  const exampleStart = html.indexOf("const example = {");
+  const exampleEnd = html.indexOf("const fields = [",exampleStart);
+  const exampleSource = html.slice(exampleStart,exampleEnd);
+
+  assert.match(exampleSource,/"date": "2026-07-16"/);
+  assert.match(exampleSource,/"title": "07\.16 重庆、成都双飞6日游"/);
+});
+
+test("keeps existing standards and notes while adding recognized items", () => {
+  const mergeRecognitionList = loadFunction("mergeRecognitionList");
+
+  assert.deepEqual(
+    mergeRecognitionList(["航班：往返经济舱含税","交通：当地旅游巴士"],["交通：升级为当地空调旅游巴士","保险：旅行社责任险"]),
+    ["航班：往返经济舱含税","交通：升级为当地空调旅游巴士","保险：旅行社责任险"]
+  );
+  const originalNote = "游客须携带有效身份证件（因忘带或遗失导致无法乘机或入住酒店责任自理）；";
+  assert.deepEqual(
+    mergeRecognitionList([originalNote],["游客须携带有效身份证件，若因忘带或遗失导致无法乘机或入住酒店，责任自理。"]),
+    [originalNote]
+  );
+  assert.deepEqual(
+    mergeRecognitionList([originalNote],["行程中禁止携带危险物品。"]),
+    [originalNote,"行程中禁止携带危险物品。"]
+  );
+  assert.match(html, /接待标准和特别说明必须以当前已有内容为底稿/);
+  assert.match(html, /standards:mergeRecognitionList\(data\.standards,list\(raw\?\.standards\)\)/);
+  assert.match(html, /notes:mergeRecognitionList\(data\.notes,list\(raw\?\.notes\)\)/);
+});
+
+test("accepts only safe numeric textarea heights", () => {
+  const safeTextareaHeight = loadFunction("safeTextareaHeight");
+
+  assert.equal(safeTextareaHeight(320),320);
+  assert.equal(safeTextareaHeight("320"),320);
+  assert.equal(safeTextareaHeight(5000),1200);
+  assert.equal(safeTextareaHeight('1px" autofocus onfocus="alert(1)'),0);
+  assert.match(html, /const savedHeight = safeTextareaHeight\(data\._heights\?\.\[key\]\)/);
+  assert.doesNotMatch(html, /height:\$\{data\._heights\[key\]\}px/);
+});
+
+test("limits preview startup shortcuts to startup and still requires post-change QA", () => {
+  assert.match(skill, /仅在启动预览时/);
+  assert.match(skill, /修改完成后/);
+  assert.match(skill, /实际检查/);
+  assert.doesNotMatch(skill, /修改完成后直接通知用户刷新/);
 });
 
 test("keeps the page preview plain and applies letterhead only during export", () => {
@@ -310,17 +400,18 @@ test("hides optional departure notice fields until they have content", () => {
 
 test("shows bullets in standards and notes editors without changing list data", () => {
   assert.match(html, /\.bullet-list-row::before \{[\s\S]*?background: var\(--primary\)/);
-  assert.match(html, /<div class="bullet-list-editor" id="standardsInput" data-list-editor="standards"><\/div>/);
-  assert.match(html, /<div class="bullet-list-editor" id="notesInput" data-list-editor="notes"><\/div>/);
+  assert.match(html, /<div class="bullet-list-editor" id="standardsInput" data-list-editor="standards" contenteditable="plaintext-only"/);
+  assert.match(html, /<div class="bullet-list-editor" id="notesInput" data-list-editor="notes" contenteditable="plaintext-only"/);
   assert.match(html, /function listEditorRowsHtml\(field, items\)/);
-  assert.match(html, /data-list-field="\$\{field\}"/);
-  assert.match(html, /if \(e\.key === "Enter"\)/);
-  assert.match(html, /syncListEditorData\(field\)/);
+  assert.match(html, /data-list-row="\$\{index\}"/);
+  assert.match(html, /if \(e\.key !== "Enter"\) return;/);
+  assert.match(html, /data\[field\] = items\.map\(item => item\.trim\(\)\)\.filter\(Boolean\)/);
 });
 
-test("recalculates list row heights once per frame after viewport width changes", () => {
-  assert.match(html, /let listEditorResizeFrame = 0;/);
-  assert.match(html, /window\.addEventListener\("resize",\(\) => \{[\s\S]*?if \(listEditorResizeFrame\) return;[\s\S]*?listEditorResizeFrame = requestAnimationFrame\(\(\) => \{[\s\S]*?listEditorResizeFrame = 0;[\s\S]*?autosizeListEditor\(\);[\s\S]*?\}\);[\s\S]*?\},\{passive:true\}\);/);
+test("lets continuous list rows wrap without resize bookkeeping", () => {
+  assert.doesNotMatch(html, /listEditorResizeFrame/);
+  assert.doesNotMatch(html, /function autosizeListEditor\(/);
+  assert.match(html, /\.bullet-list-row \{[^}]*line-height: 1\.55/s);
 });
 
 test("styles lodging link button with Ctrip blue and white text", () => {
@@ -423,4 +514,81 @@ test("keeps header save state label fixed as Kevin-SZ", () => {
 test("shows the compact brand title in the header", () => {
   assert.match(html, /<h1>线路定制<\/h1>/);
   assert.doesNotMatch(html, /<h1>旅行线路定制<\/h1>/);
+});
+
+test("defaults breakfast only for newly created itinerary days", () => {
+  assert.match(html, /days:\[\{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",lodgingUrl:"",breakfast:"酒店含",lunch:"",dinner:"",flight:""\}\]/);
+  assert.match(html, /function blankDay\([\s\S]*?breakfast:"酒店含", lunch:"", dinner:""/);
+});
+
+test("keeps lunch and dinner inputs free of placeholder text", () => {
+  assert.match(html, /\["lunch","午餐","","input"\]/);
+  assert.match(html, /\["dinner","晚餐","","input"\]/);
+});
+
+test("renders empty lodging as a dash instead of pending", () => {
+  assert.match(html, /const label = esc\(day\.lodging \|\| "—"\)/);
+  assert.doesNotMatch(html, /day\.lodging \|\| "待定"/);
+});
+
+test("asks demand recognition for bracketed scenic names and readable descriptions", () => {
+  assert.match(html, /景点名称必须使用中文方括号【】标注/);
+  assert.match(html, /【青城山】/);
+  assert.match(html, /【乐山大佛】/);
+  assert.match(html, /禁止只罗列景点名称/);
+  assert.match(html, /一至两句简短的特色、体验或景观描述/);
+});
+
+test("keeps preview naturally sized and scrolls only an overflowing desktop editor", () => {
+  assert.match(html, /\.workspace \{[\s\S]*?align-items: start/s);
+  assert.match(html, /\.editor-scroll \{[^}]*overflow-y: auto/s);
+  assert.match(html, /function syncEditorHeightToPreview\(/);
+  assert.match(html, /previewPanel\.offsetHeight/);
+  assert.match(html, /editorPanel\.style\.height = `\$\{previewPanel\.offsetHeight\}px`/);
+  assert.match(html, /matchMedia\("\(max-width: 900px\)"\)\.matches/);
+  assert.match(html, /requestAnimationFrame\(syncEditorHeightToPreview\)/);
+});
+
+test("routes wheel movement to the editor under the current pointer", () => {
+  let prevented = false;
+  const editorPanel = {contains:() => true};
+  const editorScroll = {scrollTop:100,scrollHeight:1000,clientHeight:400};
+  const routeEditorWheel = Function("editorPanel","editorScroll",`
+    const $ = selector => selector === ".editor-panel" ? editorPanel : editorScroll;
+    const matchMedia = () => ({matches:false});
+    const document = {elementFromPoint:() => ({})};
+    const window = {innerHeight:900};
+    ${extractFunction("routeEditorWheel")}
+    return routeEditorWheel;
+  `)(editorPanel,editorScroll);
+
+  routeEditorWheel({clientX:20,clientY:20,deltaY:80,deltaMode:0,ctrlKey:false,preventDefault:() => { prevented = true; }});
+
+  assert.equal(editorScroll.scrollTop,180);
+  assert.equal(prevented,true);
+});
+
+test("lets the page keep scrolling when the pointer is outside the editor", () => {
+  let prevented = false;
+  const editorPanel = {contains:() => false};
+  const editorScroll = {scrollTop:100,scrollHeight:1000,clientHeight:400};
+  const routeEditorWheel = Function("editorPanel","editorScroll",`
+    const $ = selector => selector === ".editor-panel" ? editorPanel : editorScroll;
+    const matchMedia = () => ({matches:false});
+    const document = {elementFromPoint:() => ({})};
+    const window = {innerHeight:900};
+    ${extractFunction("routeEditorWheel")}
+    return routeEditorWheel;
+  `)(editorPanel,editorScroll);
+
+  routeEditorWheel({clientX:900,clientY:20,deltaY:80,deltaMode:0,ctrlKey:false,preventDefault:() => { prevented = true; }});
+
+  assert.equal(editorScroll.scrollTop,100);
+  assert.equal(prevented,false);
+});
+
+test("keeps the lodging input free of placeholder text", () => {
+  assert.match(html, /\["lodging","住宿","","input"\]/);
+  assert.match(html, /data-field="lodging" value="\$\{esc\(day\.lodging\)\}" placeholder=""/);
+  assert.doesNotMatch(html, /placeholder="例如：重庆市区酒店"/);
 });
