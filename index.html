@@ -387,9 +387,9 @@
     .notice-item-wide { grid-column: 1 / -1; }
     .itinerary { position: relative; }
     .preview-day {
-      position: relative; margin: 0 0 20px; padding: 0 0 20px 50px; border-bottom: 1px solid var(--soft-line);
+      position: relative; margin: 0 0 20px; padding: 0 0 20px 50px;
     }
-    .preview-day:last-child { margin-bottom: 0; border-bottom: 0; }
+    .preview-day:last-child { margin-bottom: 0; }
     .preview-day::before {
       content: ""; position: absolute; top: 36px; bottom: -21px; left: 17px; width: 1px; background: var(--line);
     }
@@ -401,8 +401,17 @@
     .preview-day-head { min-height: 35px; display: flex; justify-content: space-between; gap: 16px; align-items: start; }
     .preview-route { font-size: 16px; font-weight: 700; }
     .preview-date { flex: none; color: var(--muted); font-size: 12px; }
+    .preview-day-card {
+      min-height: 170px; padding: 14px 16px; border: 1px solid #f1cbd4; border-radius: 14px;
+      background: #fff8fa; box-shadow: 0 4px 14px rgba(38,42,48,.05);
+    }
     .flight { margin-top: 5px; color: var(--muted); font-size: 12px; }
     .schedule { margin: 14px 0; display: grid; gap: 8px; }
+    .preview-day-card .schedule { margin: 12px 0; }
+    .preview-day-card .schedule::after {
+      content: ""; width: calc(100% - 56px); height: 1px; margin: 4px 0 0 56px;
+      justify-self: start; background: #dedede;
+    }
     .schedule-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; }
     .schedule-row b { color: var(--primary); font-size: 12px; }
     .schedule-row span { white-space: pre-wrap; }
@@ -416,7 +425,7 @@
     .lodging-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; }
     .lodging-row a { color: #2577e3; text-decoration: none; text-underline-offset: 2px; overflow-wrap: anywhere; }
     .lodging-row a:hover { color: #1f63bd; text-decoration: underline; }
-    .info-section { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .info-section { margin-top: 30px; padding-top: 22px; }
     .info-section h3 { margin: 0 0 12px; font-size: 17px; }
     .info-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--body); }
     .info-list li { position: relative; padding-left: 17px; }
@@ -535,6 +544,7 @@
       .route-map-label { font-size: 11px; }
       .preview-title { font-size: 21px; }
       .preview-day { padding-left: 43px; }
+      .preview-day-card { min-height: 160px; padding: 12px 13px; }
       .preview-day-head { display: block; }
       .preview-date { margin-top: 2px; }
       .notice-list { grid-template-columns: 1fr; }
@@ -554,6 +564,17 @@
       .preview-title { font-size: 20pt; }
       .preview-kicker { margin-bottom: 18px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .preview-day { break-inside: avoid; margin-bottom: 14px; padding-bottom: 14px; }
+      .preview-day-card {
+        break-inside: avoid; border-color: transparent; box-shadow: inset 0 0 0 .25mm #f1cbd4;
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+      }
+      .preview-departure-notice, .preview-route-map, .preview-quote-details {
+        border-color: transparent; box-shadow: inset 0 0 0 .25mm #ffd1da;
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+      }
+      .preview-quote-table, .preview-quote-table th, .preview-quote-table td {
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+      }
       .preview-day-label, .info-list li::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .preview-route-map, .route-map-surface, .route-map-line, .route-map-node { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .info-section { break-inside: avoid; margin-top: 20px; padding-top: 15px; }
@@ -1140,7 +1161,7 @@
         return String(value ?? "").includes("%") || Math.abs(number) > 1 ? number / 100 : number;
       }
       function roundMoney(value) {
-        return Math.round((Number(value) || 0) + Number.EPSILON);
+        return Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
       }
       function formatMoney(value) {
         const number = Number(value) || 0;
@@ -1384,16 +1405,16 @@
       function parseDate(value, weekday = "") {
         if (/^\d{4}-\d{2}-\d{2}$/.test(value || "")) {
           const [year,month,day] = value.split("-").map(Number);
-          return new Date(year,month - 1,day);
+          return validDateParts({year,month,day}) ? new Date(year,month - 1,day) : null;
         }
         const match = String(value || "").match(/(\d{1,2})月(\d{1,2})日/);
         if (!match) return null;
         const month = Number(match[1]), day = Number(match[2]);
         for (let year = 2024; year <= 2030; year++) {
           const candidate = new Date(year,month - 1,day);
-          if (!weekday || weekdays[candidate.getDay()] === weekday) return candidate;
+          if (validDateParts({year,month,day}) && (!weekday || weekdays[candidate.getDay()] === weekday)) return candidate;
         }
-        return new Date(new Date().getFullYear(),month - 1,day);
+        return null;
       }
       function formatDate(value) {
         const date = parseDate(value);
@@ -2117,14 +2138,16 @@ ${text}`;
       }
       function validBackup(value) {
         return value?.type === "trip-plan-task-library" && value.version === 1 && Array.isArray(value.tasks)
-          && value.tasks.length > 0 && value.tasks.every(task => task?.data && Array.isArray(task.data.days));
+          && value.tasks.length > 0 && value.tasks.every(task => task?.data && Array.isArray(task.data.days)
+            && task.data.days.every(day => day && typeof day === "object" && !Array.isArray(day)));
       }
       async function restoreTasks(file) {
         try {
           const backup = JSON.parse(await file.text());
           if (!validBackup(backup)) throw new Error("invalid");
+          const restoredTasks = backup.tasks.map(task => ({id:uid(),data:normalizeSavedDates(clone(task.data)),updatedAt:Date.now()}));
           persistLibrary();
-          backup.tasks.forEach(task => library.tasks.push({id:uid(),data:normalizeSavedDates(clone(task.data)),updatedAt:Date.now()}));
+          library.tasks.push(...restoredTasks);
           save();
           renderTaskMenu();
           toast(`已合并恢复 ${backup.tasks.length} 个任务`);
@@ -2513,20 +2536,22 @@ ${text}`;
               <div class="preview-route">${esc(day.route || "路线待定")}</div>
               ${day.date || day.weekday ? `<div class="preview-date">${esc([formatDate(day.date),day.weekday].filter(Boolean).join(" · "))}</div>` : ""}
             </div>
-            ${day.flight ? `<div class="flight">交通方式：${esc(day.flight)}</div>` : ""}
-            <div class="schedule">
-              ${day.morning ? `<div class="schedule-row"><b>午前：</b><span>${esc(day.morning)}</span></div>` : ""}
-              ${day.afternoon ? `<div class="schedule-row"><b>午后：</b><span>${esc(day.afternoon)}</span></div>` : ""}
-              ${day.remark ? `<div class="schedule-row remark-row"><b>备注：</b><span>${esc(day.remark)}</span></div>` : ""}
-            </div>
-            <div class="meta-grid">
-              <div class="meta meal-row">
-                <b>餐饮：</b>
-                <span class="meal-item"><b>早</b><span>${esc(day.breakfast || "—")}</span></span>
-                <span class="meal-item"><b>午</b><span>${esc(day.lunch || "—")}</span></span>
-                <span class="meal-item"><b>晚</b><span>${esc(day.dinner || "—")}</span></span>
+            <div class="preview-day-card">
+              ${day.flight ? `<div class="flight">交通方式：${esc(day.flight)}</div>` : ""}
+              <div class="schedule">
+                ${day.morning ? `<div class="schedule-row"><b>午前：</b><span>${esc(day.morning)}</span></div>` : ""}
+                ${day.afternoon ? `<div class="schedule-row"><b>午后：</b><span>${esc(day.afternoon)}</span></div>` : ""}
+                ${day.remark ? `<div class="schedule-row remark-row"><b>备注：</b><span>${esc(day.remark)}</span></div>` : ""}
               </div>
-              <div class="meta lodging-row"><b>住宿：</b><span>${lodgingPreviewHtml(day)}</span></div>
+              <div class="meta-grid">
+                <div class="meta meal-row">
+                  <b>餐饮：</b>
+                  <span class="meal-item"><b>早</b><span>${esc(day.breakfast || "—")}</span></span>
+                  <span class="meal-item"><b>午</b><span>${esc(day.lunch || "—")}</span></span>
+                  <span class="meal-item"><b>晚</b><span>${esc(day.dinner || "—")}</span></span>
+                </div>
+                <div class="meta lodging-row"><b>住宿：</b><span>${lodgingPreviewHtml(day)}</span></div>
+              </div>
             </div>
           </section>`).join("");
         const list = (title, items) => items?.length ? `<section class="info-section"><h3>${title}</h3><ul class="info-list">${items.map(v => `<li>${esc(v)}</li>`).join("")}</ul></section>` : "";

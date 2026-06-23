@@ -445,6 +445,14 @@ test("calculates service fee before tax and renders quote details as a table", (
   assert.match(html, /class="preview-quote-table"/);
 });
 
+test("keeps quote calculations precise to cents", () => {
+  const source = ["parseMoney","parsePercent","roundMoney","quoteRowTotal"].map(extractFunction).join("\n");
+  const quoteRowTotal = Function(`${source}\nreturn quoteRowTotal;`)();
+
+  assert.equal(quoteRowTotal({unitPrice:"12.50",quantity:"1",times:"1"}),12.5);
+  assert.equal(quoteRowTotal({unitPrice:"99.99",quantity:"1",times:"1"}),99.99);
+});
+
 test("allows quote text cells to wrap at cell width and manual line breaks", () => {
   assert.match(html, /function quoteTextCellHtml\(/);
   assert.match(html, /<textarea class="quote-cell-text"[^>]*data-quote-field="\$\{field\}">/);
@@ -547,6 +555,90 @@ test("keeps preview naturally sized and scrolls only an overflowing desktop edit
   assert.match(html, /editorPanel\.style\.height = `\$\{previewPanel\.offsetHeight\}px`/);
   assert.match(html, /matchMedia\("\(max-width: 900px\)"\)\.matches/);
   assert.match(html, /requestAnimationFrame\(syncEditorHeightToPreview\)/);
+});
+
+test("wraps each preview day itinerary in one visual card", () => {
+  const renderPreview = extractFunction("renderPreview");
+
+  assert.match(renderPreview, /<div class="preview-day-card">\s*\$\{day\.flight[\s\S]*?<div class="schedule">[\s\S]*?<div class="meta-grid">[\s\S]*?<\/div>\s*<\/div>\s*<\/section>/);
+});
+
+test("uses the departure notice background for preview day cards", () => {
+  assert.match(html, /\.preview-day-card \{[^}]*min-height: 170px[^}]*padding: 14px 16px[^}]*border: 1px solid #f1cbd4[^}]*border-radius: 14px[^}]*background: #fff8fa[^}]*box-shadow: 0 4px 14px rgba\(38,42,48,\.05\)/s);
+  assert.match(html, /\.preview-day-card \.schedule \{[^}]*margin: 12px 0/s);
+});
+
+test("separates itinerary details from meal metadata after any remark", () => {
+  const renderPreview = extractFunction("renderPreview");
+
+  assert.match(renderPreview, /day\.remark[\s\S]*?<\/div>\s*<div class="meta-grid">/);
+  assert.match(html, /\.preview-day-card \.schedule::after \{[^}]*content: ""[^}]*width: calc\(100% - 56px\)[^}]*height: 1px[^}]*margin: 4px 0 0 56px[^}]*justify-self: start[^}]*background: #dedede/s);
+});
+
+test("keeps preview day cards compact on mobile and intact in print", () => {
+  assert.match(html, /@media \(max-width: 620px\) \{[\s\S]*?\.preview-day-card \{[^}]*min-height: 160px[^}]*padding: 12px 13px/s);
+  assert.match(html, /@media print \{[\s\S]*?\.preview-day-card \{[^}]*break-inside: avoid[^}]*print-color-adjust: exact[^}]*-webkit-print-color-adjust: exact/s);
+});
+
+test("draws printable panel borders inside their right edge", () => {
+  assert.match(html, /@media print \{[\s\S]*?\.preview-day-card \{[^}]*border-color: transparent[^}]*box-shadow: inset 0 0 0 \.25mm #f1cbd4/s);
+  assert.match(html, /\.preview-departure-notice, \.preview-route-map, \.preview-quote-details \{[^}]*border-color: transparent[^}]*box-shadow: inset 0 0 0 \.25mm #ffd1da/s);
+});
+
+test("preserves pink panel and quote table backgrounds in exported PDFs", () => {
+  assert.match(html, /\.preview-departure-notice, \.preview-route-map, \.preview-quote-details \{[^}]*print-color-adjust: exact[^}]*-webkit-print-color-adjust: exact/s);
+  assert.match(html, /\.preview-quote-table, \.preview-quote-table th, \.preview-quote-table td \{[^}]*print-color-adjust: exact[^}]*-webkit-print-color-adjust: exact/s);
+});
+
+test("removes redundant horizontal dividers between preview day cards", () => {
+  const previewDayRule = html.match(/\.preview-day \{([^}]*)\}/)?.[1] || "";
+  const lastPreviewDayRule = html.match(/\.preview-day:last-child \{([^}]*)\}/)?.[1] || "";
+
+  assert.doesNotMatch(previewDayRule,/border-bottom/);
+  assert.doesNotMatch(lastPreviewDayRule,/border-bottom/);
+});
+
+test("rejects impossible saved dates instead of rolling them forward", () => {
+  const parseDate = Function(`const weekdays=["周日","周一","周二","周三","周四","周五","周六"];\n${extractFunction("validDateParts")}\n${extractFunction("parseDate")}\nreturn parseDate;`)();
+
+  assert.equal(parseDate("2026-02-29"),null);
+  assert.equal(parseDate("2026-02-31"),null);
+  assert.equal(parseDate("2026-13-01"),null);
+  assert.equal(parseDate("2028-02-29")?.getDate(),29);
+});
+
+test("restores task backups atomically", async () => {
+  const library = {tasks:[]};
+  const notices = [];
+  const restoreTasks = Function("library","validBackup","persistLibrary","uid","normalizeSavedDates","clone","save","renderTaskMenu","toast",`
+    async ${extractFunction("restoreTasks")}
+    return restoreTasks;
+  `)(
+    library, () => true, () => {}, () => "new-id",
+    value => { if (value.invalid) throw new Error("invalid task"); return value; },
+    value => structuredClone(value), () => {}, () => {}, message => notices.push(message)
+  );
+  const file = {text:async () => JSON.stringify({tasks:[{data:{days:[{}]}},{data:{days:[{}],invalid:true}}]})};
+
+  await restoreTasks(file);
+
+  assert.equal(library.tasks.length,0);
+  assert.deepEqual(notices,["备份文件无效，未导入任何任务"]);
+});
+
+test("validates every restored itinerary day", () => {
+  const validBackup = loadFunction("validBackup");
+
+  assert.equal(validBackup({type:"trip-plan-task-library",version:1,tasks:[{data:{days:[{}]}}]}),true);
+  assert.equal(validBackup({type:"trip-plan-task-library",version:1,tasks:[{data:{days:[null]}}]}),false);
+});
+
+test("keeps reception standards and special notes separated without divider lines", () => {
+  const infoSectionRule = html.match(/\.info-section \{([^}]*)\}/)?.[1] || "";
+
+  assert.match(infoSectionRule, /margin-top: 30px/);
+  assert.match(infoSectionRule, /padding-top: 22px/);
+  assert.doesNotMatch(infoSectionRule, /border-top/);
 });
 
 test("routes wheel movement to the editor under the current pointer", () => {
