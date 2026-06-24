@@ -227,7 +227,22 @@ test("keeps the bundled example title aligned with its first day", () => {
   const exampleSource = html.slice(exampleStart,exampleEnd);
 
   assert.match(exampleSource,/"date": "2026-07-16"/);
-  assert.match(exampleSource,/"title": "07\.16 重庆、成都双飞6日游"/);
+  assert.match(exampleSource,/"title": "07\.16 重庆\+成都双飞6日游"/);
+});
+
+test("uses the saved blue route as the only bundled example", () => {
+  const exampleStart = html.indexOf("const example = {");
+  const exampleEnd = html.indexOf("const fields = [",exampleStart);
+  const exampleSource = html.slice(exampleStart,exampleEnd);
+
+  assert.match(exampleSource,/"themeId": "blue"/);
+  assert.match(exampleSource,/"title": "07\.16 重庆\+成都双飞6日游"/);
+  assert.match(exampleSource,/"departureNotice": \{[\s\S]*?"visible": false/s);
+  assert.match(exampleSource,/"mapModule": \{\s*"visible": false\s*\}/s);
+  assert.match(exampleSource,/"serviceFee":\{"enabled":true,"rate":"8%"\}/);
+  assert.match(exampleSource,/"tax":\{"enabled":true,"rate":"6%"\}/);
+  assert.match(exampleSource,/如需购买儿童\/老年\/军人等优惠票/);
+  assert.match(exampleSource,/"_heights": \{/);
 });
 
 test("keeps existing standards and notes while adding recognized items", () => {
@@ -347,7 +362,7 @@ test("lays out route map stops in rows of at most five", () => {
 });
 
 test("renders the route map before notice with safe defaults and future provider seam", () => {
-  assert.match(html, /"mapModule": \{\s*"visible": true\s*\}/);
+  assert.match(html, /"mapModule": \{\s*"visible": false\s*\}/);
   assert.match(html, /mapModule:\{visible:false\}/);
   assert.match(html, /data\.mapModule = \{visible:Boolean\(data\.mapModule\?\.visible\)\}/);
   assert.match(html, /function renderRouteMap\(/);
