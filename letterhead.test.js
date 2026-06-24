@@ -709,6 +709,11 @@ test("keeps white text readable on every route theme primary color", () => {
   primaryColors.forEach(color => assert.ok(1.05 / (luminance(color) + .05) >= 4.5,`${color} has insufficient contrast`));
 });
 
+test("uses the current route theme for the preview quote table header", () => {
+  assert.match(html,/\.preview-quote-table th \{[^}]*background: var\(--primary-border\)/s);
+  assert.doesNotMatch(html,/\.preview-quote-table th \{[^}]*background: #f7e4ed/s);
+});
+
 test("assigns deterministic themes while avoiding the preceding route color", () => {
   const themeIds = ["red","blue","green","pink","purple","orange"];
   const nextThemeId = Function("themeIds",`${extractFunction("nextThemeId")}\nreturn nextThemeId;`)(themeIds);
