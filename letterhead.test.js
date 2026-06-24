@@ -178,7 +178,7 @@ test("supports dragging reference itinerary files into a tidy aligned control", 
 });
 
 test("customer demand recognition previews before applying to current task", () => {
-  assert.match(html, /let demandState = \{busy:false,result:null,file:null\}/);
+  assert.match(html, /function demandState\(taskData = data\)/);
   assert.match(html, /function demandPrompt\(/);
   assert.match(html, /function recognizeDemandText\(/);
   assert.match(html, /function renderDemandReview\(/);
@@ -190,7 +190,7 @@ test("customer demand recognition previews before applying to current task", () 
   assert.doesNotMatch(html, /recognized\.highlights/);
   assert.doesNotMatch(html, /data\.highlights = recognized\.highlights/);
   assert.doesNotMatch(html, /标题、亮点、标准和说明/);
-  assert.match(html, /data\.days = clone\(demandState\.result\.data\.days\)/);
+  assert.match(html, /data\.days = clone\(state\.result\.data\.days\)/);
 });
 
 test("keeps all four top actions equal without decorative icons", () => {
@@ -202,7 +202,7 @@ test("keeps all four top actions equal without decorative icons", () => {
 });
 
 test("keeps the currently edited route visually fixed while hovering", () => {
-  assert.match(html, /\.task-item\.active \.task-select \{[^}]*position: relative[^}]*background: #fff1f4/s);
+  assert.match(html, /\.task-item\.active \.task-select \{[^}]*position: relative[^}]*background: var\(--primary-soft\)/s);
   assert.match(html, /\.task-item\.active \.task-select::before \{[^}]*left: 0[^}]*top: 5px[^}]*bottom: 5px[^}]*width: 3px[^}]*background: var\(--primary\)/s);
   assert.doesNotMatch(html, /\.task-item\.active \.task-select:hover/);
   assert.doesNotMatch(html, /\.task-item\.active \.task-select \{[^}]*box-shadow:/s);
@@ -216,7 +216,7 @@ test("prefixes recognized titles with the first departure date", () => {
   assert.equal(normalizeRecognizedTitle("7月20日 重庆、成都双飞6日游","2026-08-01"),"08.01 重庆、成都双飞6日游");
   assert.equal(normalizeRecognizedTitle("07/20 重庆、成都双飞6日游","2026-08-01"),"08.01 重庆、成都双飞6日游");
   assert.equal(normalizeRecognizedTitle("重庆、成都双飞6日游",""),"重庆、成都双飞6日游");
-  assert.match(html, /title:normalizeRecognizedTitle\(text\(raw\?\.title\) \|\| data\.title,days\[0\]\?\.date\)/);
+  assert.match(html, /title:normalizeRecognizedTitle\(text\(raw\?\.title\) \|\| taskData\.title,days\[0\]\?\.date\)/);
   assert.match(html, /saved\.title = normalizeRecognizedTitle\(saved\.title,saved\.days\[0\]\?\.date\)/);
   assert.match(html, /data\.title = normalizeRecognizedTitle\(data\.title,data\.days\[0\]\?\.date\)/);
 });
@@ -247,8 +247,8 @@ test("keeps existing standards and notes while adding recognized items", () => {
     [originalNote,"行程中禁止携带危险物品。"]
   );
   assert.match(html, /接待标准和特别说明必须以当前已有内容为底稿/);
-  assert.match(html, /standards:mergeRecognitionList\(data\.standards,list\(raw\?\.standards\)\)/);
-  assert.match(html, /notes:mergeRecognitionList\(data\.notes,list\(raw\?\.notes\)\)/);
+  assert.match(html, /standards:mergeRecognitionList\(taskData\.standards,list\(raw\?\.standards\)\)/);
+  assert.match(html, /notes:mergeRecognitionList\(taskData\.notes,list\(raw\?\.notes\)\)/);
 });
 
 test("accepts only safe numeric textarea heights", () => {
@@ -564,7 +564,7 @@ test("wraps each preview day itinerary in one visual card", () => {
 });
 
 test("uses the departure notice background for preview day cards", () => {
-  assert.match(html, /\.preview-day-card \{[^}]*min-height: 170px[^}]*padding: 14px 16px[^}]*border: 1px solid #f1cbd4[^}]*border-radius: 14px[^}]*background: #fff8fa[^}]*box-shadow: 0 4px 14px rgba\(38,42,48,\.05\)/s);
+  assert.match(html, /\.preview-day-card \{[^}]*min-height: 170px[^}]*padding: 14px 16px[^}]*border: 1px solid var\(--primary-print-border\)[^}]*border-radius: 14px[^}]*background: var\(--primary-soft\)[^}]*box-shadow: 0 4px 14px rgba\(38,42,48,\.05\)/s);
   assert.match(html, /\.preview-day-card \.schedule \{[^}]*margin: 12px 0/s);
 });
 
@@ -581,8 +581,8 @@ test("keeps preview day cards compact on mobile and intact in print", () => {
 });
 
 test("draws printable panel borders inside their right edge", () => {
-  assert.match(html, /@media print \{[\s\S]*?\.preview-day-card \{[^}]*border-color: transparent[^}]*box-shadow: inset 0 0 0 \.25mm #f1cbd4/s);
-  assert.match(html, /\.preview-departure-notice, \.preview-route-map, \.preview-quote-details \{[^}]*border-color: transparent[^}]*box-shadow: inset 0 0 0 \.25mm #ffd1da/s);
+  assert.match(html, /@media print \{[\s\S]*?\.preview-day-card \{[^}]*border-color: transparent[^}]*box-shadow: inset 0 0 0 \.25mm var\(--primary-print-border\)/s);
+  assert.match(html, /\.preview-departure-notice, \.preview-route-map, \.preview-quote-details \{[^}]*border-color: transparent[^}]*box-shadow: inset 0 0 0 \.25mm var\(--primary-border\)/s);
 });
 
 test("preserves pink panel and quote table backgrounds in exported PDFs", () => {
@@ -683,4 +683,104 @@ test("keeps the lodging input free of placeholder text", () => {
   assert.match(html, /\["lodging","住宿","","input"\]/);
   assert.match(html, /data-field="lodging" value="\$\{esc\(day\.lodging\)\}" placeholder=""/);
   assert.doesNotMatch(html, /placeholder="例如：重庆市区酒店"/);
+});
+
+test("defines six complete route themes and theme-driven panel colors", () => {
+  for (const id of ["red","blue","green","pink","purple","orange"]) {
+    assert.match(html,new RegExp(`id:"${id}"`));
+  }
+  assert.match(html,/--primary-soft:/);
+  assert.match(html,/--primary-border:/);
+  assert.match(html,/--primary-print-border:/);
+  assert.match(html,/\.preview-kicker \{[^}]*background: var\(--primary-soft\)/s);
+  assert.match(html,/\.preview-day-card \{[^}]*border: 1px solid var\(--primary-print-border\)[^}]*background: var\(--primary-soft\)/s);
+  assert.match(html,/@media print \{[\s\S]*?box-shadow: inset 0 0 0 \.25mm var\(--primary-print-border\)/s);
+});
+
+test("keeps white text readable on every route theme primary color", () => {
+  const primaryColors = [...html.matchAll(/\{id:"(?:red|blue|green|pink|purple|orange)"[^}]*primary:"(#[0-9a-f]{6})"/gi)].map(match => match[1]);
+  const luminance = hex => {
+    const channels = hex.match(/[0-9a-f]{2}/gi).map(value => parseInt(value,16) / 255)
+      .map(value => value <= .03928 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+    return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+  };
+
+  assert.equal(primaryColors.length,6);
+  primaryColors.forEach(color => assert.ok(1.05 / (luminance(color) + .05) >= 4.5,`${color} has insufficient contrast`));
+});
+
+test("assigns deterministic themes while avoiding the preceding route color", () => {
+  const themeIds = ["red","blue","green","pink","purple","orange"];
+  const nextThemeId = Function("themeIds",`${extractFunction("nextThemeId")}\nreturn nextThemeId;`)(themeIds);
+
+  assert.equal(nextThemeId([]),"red");
+  assert.equal(nextThemeId([{data:{themeId:"red"}}]),"blue");
+  assert.equal(nextThemeId([{data:{themeId:"blue"}}]),"green");
+  assert.notEqual(nextThemeId([{data:{themeId:"green"}},{data:{themeId:"pink"}}]),"pink");
+});
+
+test("normalizes route-specific demand state and interrupted recognition", () => {
+  const normalizeDemandRecognition = loadFunction("normalizeDemandRecognition");
+
+  assert.deepEqual(normalizeDemandRecognition(),{status:"idle",result:null,sourceName:"",message:""});
+  assert.deepEqual(normalizeDemandRecognition({status:"complete",result:{data:{days:[{}]}},sourceName:"客户需求"}),{
+    status:"complete",result:{data:{days:[{}]}},sourceName:"客户需求",message:""
+  });
+  assert.deepEqual(normalizeDemandRecognition({status:"busy",message:"处理中"}),{
+    status:"error",result:null,sourceName:"",message:"上次识别未完成，请重新识别。"
+  });
+});
+
+test("stores customer demand and recognition state inside each route", () => {
+  assert.match(html,/customerDemand:""/);
+  assert.match(html,/demandRecognition:normalizeDemandRecognition/);
+  assert.doesNotMatch(html,/let demandState = \{busy:false,result:null,file:null\}/);
+  assert.match(html,/\$\("#customerDemandInput"\)\.value = data\.customerDemand \|\| ""/);
+  assert.match(html,/data\.customerDemand = e\.target\.value/);
+  assert.match(html,/function renderDemandState\(/);
+});
+
+test("binds recognition results to the route that started the request", () => {
+  const startDemandRecognition = extractFunction("startDemandRecognition");
+
+  assert.match(startDemandRecognition,/const taskId = library\.currentId/);
+  assert.match(startDemandRecognition,/const taskData = data/);
+  assert.match(startDemandRecognition,/recognizeDemandText\([\s\S]*?,sourceLabel,taskData\)/);
+  assert.match(startDemandRecognition,/setDemandResult\(result,[^,]+,taskId,taskData\)/);
+  assert.match(html,/function demandPrompt\(text, sourceLabel = "客户需求", taskData = data\)/);
+  assert.match(html,/function normalizeImportedResult\(raw, taskData = data\)/);
+});
+
+test("clears reference files and restores route demand UI on every switch", () => {
+  const switchTask = extractFunction("switchTask");
+
+  assert.match(html,/function clearReferenceFile\(/);
+  assert.match(switchTask,/clearReferenceFile\(\)/);
+  assert.match(switchTask,/renderAll\(\)/);
+  assert.match(html,/function renderEditor\([\s\S]*?renderDemandState\(\)/);
+});
+
+test("shows route colors and a current-route theme picker in the task menu", () => {
+  assert.match(html,/id="taskThemePicker"/);
+  assert.match(html,/class="task-color-dot"/);
+  assert.match(html,/data-theme-id="\$\{theme\.id\}"/);
+  assert.match(html,/function setCurrentTheme\(/);
+  assert.match(html,/applyTheme\(data\.themeId\)/);
+  assert.match(html,/taskThemePicker[\s\S]*?addEventListener\("click"/);
+});
+
+test("keeps duplicate route numbering stable and refreshes the switcher immediately", () => {
+  const taskDisplayNameSource = extractFunction("taskDisplayName");
+  assert.doesNotMatch(taskDisplayNameSource,/sort\(\(a,b\) => a\.updatedAt - b\.updatedAt\)/);
+
+  const switchTaskSource = extractFunction("switchTask");
+  assert.match(switchTaskSource,/storeLibrary\(\)/);
+  assert.match(switchTaskSource,/renderTaskMenu\(\)/);
+  assert.doesNotMatch(switchTaskSource,/\bsave\(\)/);
+});
+
+test("clears reference files for every operation that changes the current route", () => {
+  assert.match(extractFunction("switchTask"),/clearReferenceFile\(\)/);
+  assert.match(extractFunction("createTask"),/clearReferenceFile\(\)/);
+  assert.match(extractFunction("deleteTask"),/library\.currentId === id[\s\S]*?clearReferenceFile\(\)/);
 });

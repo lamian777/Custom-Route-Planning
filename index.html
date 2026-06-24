@@ -7,8 +7,11 @@
   <title>旅行线路定制</title>
   <style>
     :root {
-      --primary: #ff385c;
-      --primary-active: #e00b41;
+      --primary: #e02a4e;
+      --primary-active: #bd143c;
+      --primary-soft: #fff1f4;
+      --primary-border: #ffd1da;
+      --primary-print-border: #f1cbd4;
       --ink: #222;
       --body: #3f3f3f;
       --muted: #6a6a6a;
@@ -61,20 +64,32 @@
     .task-list { max-height: 300px; overflow: auto; display: grid; gap: 4px; }
     .task-item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px; align-items: center; border-radius: 9px; }
     .task-select {
-      min-width: 0; padding: 9px 10px; border: 0; border-radius: 9px; background: transparent; text-align: left;
+      min-width: 0; padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 9px;
+      border: 0; border-radius: 9px; background: transparent; text-align: left;
     }
     .task-select:hover { background: var(--soft); }
     .task-item.active .task-select {
-      position: relative; background: #fff1f4;
+      position: relative; background: var(--primary-soft);
     }
     .task-item.active .task-select::before {
       content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px;
       background: var(--primary); border-radius: 999px;
     }
+    .task-select-copy { min-width: 0; }
     .task-select strong, .task-select small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .task-select small { color: var(--muted); font-size: 11px; font-weight: 400; }
+    .task-color-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.08); }
     .task-delete { padding: 7px 8px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 12px; }
     .task-delete:hover { color: var(--danger); background: #fff1ee; }
+    .task-theme-picker { margin-top: 9px; padding: 10px 8px 2px; border-top: 1px solid var(--soft-line); }
+    .task-theme-picker-label { margin-bottom: 8px; color: var(--muted); font-size: 11px; font-weight: 600; }
+    .task-theme-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .task-theme-option {
+      width: 28px; height: 28px; padding: 0; border: 3px solid #fff; border-radius: 50%;
+      box-shadow: 0 0 0 1px var(--line); transition: transform .15s, box-shadow .15s;
+    }
+    .task-theme-option:hover { transform: scale(1.08); }
+    .task-theme-option[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
     .top-actions { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
     .history-switcher, .import-switcher, .settings-switcher, .export-switcher { position: relative; }
     .history-switcher > .btn, .import-switcher > .btn, .settings-switcher > .btn, .export-switcher > .btn { width: 104px; }
@@ -180,7 +195,7 @@
     .demand-file-zone .btn { min-height: 34px; padding: 0 10px; border-radius: 7px; font-weight: 500; }
     .demand-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
     .demand-drop.drag-over .demand-file-zone {
-      border-color: var(--primary); background: #fff8fa; box-shadow: 0 0 0 1px var(--primary);
+      border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 0 0 1px var(--primary);
     }
     .demand-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }
     .demand-status {
@@ -191,6 +206,7 @@
       content: ""; width: 16px; height: 16px; margin-bottom: 7px; border: 2px solid #ddd;
       border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite;
     }
+    .demand-status.error { color: var(--danger); background: #fff1ee; }
     .demand-review { margin-top: 12px; display: grid; gap: 12px; }
     .demand-review .review-summary, .demand-review .review-section { border: 1px solid var(--soft-line); border-radius: 10px; background: #fff; }
     .demand-review .review-summary { padding: 12px; display: grid; gap: 3px; }
@@ -237,7 +253,7 @@
       background: var(--canvas); overflow: hidden; transition: opacity .15s ease, transform .15s ease, border-color .15s ease, background-color .15s ease;
     }
     .day-card.dragging { opacity: .55; border-color: var(--primary); transform: scale(.985); }
-    .day-card.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px #ffd1da; }
+    .day-card.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-border); }
     .day-card[open] { border-color: #c7cbd1; background: #e3e5e8; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
     .day-card summary {
       padding: 13px 14px; display: flex; align-items: center; gap: 10px;
@@ -297,7 +313,7 @@
     .preview-title { margin: 0; text-align: center; font-size: 25px; line-height: 1.35; letter-spacing: -.4px; }
     .preview-kicker {
       width: fit-content; margin: 8px auto 28px; padding: 5px 12px; color: var(--primary);
-      background: #fff1f4; border-radius: 999px; font-size: 12px; font-weight: 700;
+      background: var(--primary-soft); border-radius: 999px; font-size: 12px; font-weight: 700;
     }
     .preview-highlights {
       margin: -8px 0 28px; padding: 16px 18px; color: var(--body); background: var(--soft);
@@ -308,8 +324,8 @@
     .route-map-editor-preview { padding: 14px; border-top: 1px solid var(--soft-line); background: #fdfdfd; }
     .route-map-empty { padding: 24px 12px; color: var(--muted); background: var(--soft); border-radius: 10px; text-align: center; }
     .preview-route-map {
-      margin: -8px 0 28px; padding: 18px; border: 1px solid #ffd1da; border-radius: var(--radius);
-      background: linear-gradient(135deg,#fff8fa,#f4f6f8); break-inside: avoid;
+      margin: -8px 0 28px; padding: 18px; border: 1px solid var(--primary-border); border-radius: var(--radius);
+      background: linear-gradient(135deg,var(--primary-soft),#f4f6f8); break-inside: avoid;
     }
     .route-map-head { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .route-map-head strong { color: var(--ink); font-size: 15px; }
@@ -322,12 +338,12 @@
     .route-map-label { fill: var(--ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
     .route-map-day { fill: var(--muted); font-size: 10px; font-weight: 600; text-anchor: middle; }
     .preview-departure-notice {
-      margin: -8px 0 28px; padding: 18px; border: 1px solid #ffd1da; border-radius: var(--radius);
-      background: #fff8fa; break-inside: avoid;
+      margin: -8px 0 28px; padding: 18px; border: 1px solid var(--primary-border); border-radius: var(--radius);
+      background: var(--primary-soft); break-inside: avoid;
     }
     .preview-quote-details {
-      margin: 30px 0 28px; padding: 18px; border: 1px solid #ffd1da; border-radius: var(--radius);
-      background: #fff8fa; break-inside: avoid;
+      margin: 30px 0 28px; padding: 18px; border: 1px solid var(--primary-border); border-radius: var(--radius);
+      background: var(--primary-soft); break-inside: avoid;
     }
     .preview-quote-details h3 { margin: 0 0 8px; font-size: 15px; }
     .quote-toolbar {
@@ -366,7 +382,7 @@
       min-height: 76px; padding: 11px 12px; border-color: var(--line); background: #fff;
       resize: vertical; line-height: 1.55; text-align: left;
     }
-    .quote-summary-row td { background: #fff8fa; font-weight: 700; }
+    .quote-summary-row td { background: var(--primary-soft); font-weight: 700; }
     .quote-summary-row .quote-total { color: var(--primary); }
     .preview-quote-table { font-size: 11px; background: #fff; }
     .preview-quote-table th { padding: 6px 5px; background: #f7e4ed; font-weight: 700; }
@@ -402,8 +418,8 @@
     .preview-route { font-size: 16px; font-weight: 700; }
     .preview-date { flex: none; color: var(--muted); font-size: 12px; }
     .preview-day-card {
-      min-height: 170px; padding: 14px 16px; border: 1px solid #f1cbd4; border-radius: 14px;
-      background: #fff8fa; box-shadow: 0 4px 14px rgba(38,42,48,.05);
+      min-height: 170px; padding: 14px 16px; border: 1px solid var(--primary-print-border); border-radius: 14px;
+      background: var(--primary-soft); box-shadow: 0 4px 14px rgba(38,42,48,.05);
     }
     .flight { margin-top: 5px; color: var(--muted); font-size: 12px; }
     .schedule { margin: 14px 0; display: grid; gap: 8px; }
@@ -565,11 +581,11 @@
       .preview-kicker { margin-bottom: 18px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .preview-day { break-inside: avoid; margin-bottom: 14px; padding-bottom: 14px; }
       .preview-day-card {
-        break-inside: avoid; border-color: transparent; box-shadow: inset 0 0 0 .25mm #f1cbd4;
+        break-inside: avoid; border-color: transparent; box-shadow: inset 0 0 0 .25mm var(--primary-print-border);
         print-color-adjust: exact; -webkit-print-color-adjust: exact;
       }
       .preview-departure-notice, .preview-route-map, .preview-quote-details {
-        border-color: transparent; box-shadow: inset 0 0 0 .25mm #ffd1da;
+        border-color: transparent; box-shadow: inset 0 0 0 .25mm var(--primary-border);
         print-color-adjust: exact; -webkit-print-color-adjust: exact;
       }
       .preview-quote-table, .preview-quote-table th, .preview-quote-table td {
@@ -604,6 +620,10 @@
       <button class="btn task-trigger" id="taskTrigger" type="button"><span id="currentTaskName">当前线路</span><b aria-hidden="true">⌄</b></button>
       <div class="task-menu" id="taskMenu" hidden>
         <div class="task-list" id="taskList"></div>
+        <div class="task-theme-picker" id="taskThemePicker">
+          <div class="task-theme-picker-label">当前线路色系</div>
+          <div class="task-theme-options" id="taskThemeOptions"></div>
+        </div>
       </div>
     </div>
     <div class="top-actions">
@@ -993,7 +1013,10 @@
                 "景点：行程内所列项目首道门票（不含自费）；",
                 "保险：旅行社责任险、旅游意外险，最终解决权归保险公司；"
         ],
-        "title": "07.16 重庆、成都双飞6日游"
+        "title": "07.16 重庆、成都双飞6日游",
+        "customerDemand": "",
+        "demandRecognition": {"status":"idle","result":null,"sourceName":"","message":""},
+        "themeId": "red"
 };
       const fields = [
         ["route","当天路线","例如：大连 — 重庆","input"],
@@ -1009,11 +1032,52 @@
       ];
       const requiredNoticeFields = new Set(noticeFields.filter(([, , required]) => required).map(([field]) => field));
       const defaultQuoteProjects = ["航班","交通","酒店","景点","餐饮","人工","保险","其他"];
+      const themes = [
+        {id:"red",label:"红色",primary:"#e02a4e",active:"#bd143c",soft:"#fff1f4",border:"#ffd1da",printBorder:"#f1cbd4"},
+        {id:"blue",label:"蓝色",primary:"#2f6fed",active:"#2459bf",soft:"#eef4ff",border:"#c9dafc",printBorder:"#b4caef"},
+        {id:"green",label:"绿色",primary:"#1f7a56",active:"#176044",soft:"#edf8f3",border:"#c5e8d8",printBorder:"#afd8c6"},
+        {id:"pink",label:"粉色",primary:"#c83f7f",active:"#a92f68",soft:"#fff0f7",border:"#f3c7dc",printBorder:"#e7b2cb"},
+        {id:"purple",label:"紫色",primary:"#7252c7",active:"#593da7",soft:"#f5f1ff",border:"#d9cdf7",printBorder:"#c7b8e9"},
+        {id:"orange",label:"橙色",primary:"#c65312",active:"#9f4310",soft:"#fff4eb",border:"#f2d2bd",printBorder:"#e4bea4"}
+      ];
+      const themeIds = themes.map(theme => theme.id);
       const $ = s => document.querySelector(s);
       const clone = value => JSON.parse(JSON.stringify(value));
       const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
       const lines = value => String(value || "").split("\n").map(v => v.trim()).filter(Boolean);
       const weekdays = ["周日","周一","周二","周三","周四","周五","周六"];
+      function normalizeDemandRecognition(value) {
+        value ||= {};
+        const validStatus = ["idle","busy","complete","error"].includes(value?.status) ? value.status : "idle";
+        if (validStatus === "busy") return {status:"error",result:null,sourceName:"",message:"上次识别未完成，请重新识别。"};
+        return {
+          status:validStatus,
+          result:validStatus === "complete" && value.result ? JSON.parse(JSON.stringify(value.result)) : null,
+          sourceName:String(value.sourceName || ""),
+          message:String(value.message || "")
+        };
+      }
+      function nextThemeId(tasks = []) {
+        const previous = tasks[tasks.length - 1]?.data?.themeId || "";
+        const start = tasks.length % themeIds.length;
+        for (let offset = 0; offset < themeIds.length; offset++) {
+          const candidate = themeIds[(start + offset) % themeIds.length];
+          if (candidate !== previous) return candidate;
+        }
+        return themeIds[0];
+      }
+      function applyTheme(themeId) {
+        const theme = themes.find(item => item.id === themeId) || themes[0];
+        const root = document.documentElement;
+        root.style.setProperty("--primary",theme.primary);
+        root.style.setProperty("--primary-active",theme.active);
+        root.style.setProperty("--primary-soft",theme.soft);
+        root.style.setProperty("--primary-border",theme.border);
+        root.style.setProperty("--primary-print-border",theme.printBorder);
+      }
+      function themeFor(themeId) {
+        return themes.find(theme => theme.id === themeId) || themes[0];
+      }
       function extractRouteStops(days = []) {
         const stops = [];
         days.forEach((day,index) => {
@@ -1102,7 +1166,6 @@
       const histories = {};
       const editRememberedTargets = new Set();
       let sizeObserver;
-      let demandState = {busy:false,result:null,file:null};
       let confirmResolver = null;
       let deepseekSettings = loadDeepseekSettings();
       let letterheadSettings = loadLetterheadSettings();
@@ -1363,8 +1426,10 @@
         try {
           const saved = JSON.parse(localStorage.getItem(LIBRARY_KEY));
           if (saved?.version === 1 && Array.isArray(saved.tasks) && saved.tasks.length) {
-            saved.tasks.forEach(task => {
-              if (Array.isArray(task?.data?.days)) normalizeSavedDates(task.data);
+            let previousThemeId = "";
+            saved.tasks.forEach((task,index) => {
+              if (Array.isArray(task?.data?.days)) normalizeSavedDates(task.data,index,previousThemeId);
+              previousThemeId = task?.data?.themeId || previousThemeId;
             });
             if (!saved.tasks.some(task => task.id === saved.currentId)) saved.currentId = saved.tasks[0].id;
             return saved;
@@ -1385,13 +1450,13 @@
       }
       function taskDisplayName(task) {
         const base = taskBaseName(task);
-        const same = library.tasks.filter(item => taskBaseName(item) === base).sort((a,b) => a.updatedAt - b.updatedAt);
+        const same = library.tasks.filter(item => taskBaseName(item) === base);
         const index = same.findIndex(item => item.id === task.id);
         return same.length > 1 ? `${base}（${index + 1}）` : base;
       }
-      function blankTaskData() {
+      function blankTaskData(themeId = nextThemeId(library.tasks)) {
         return {
-          title:"", highlights:"",
+          title:"", highlights:"", customerDemand:"", demandRecognition:normalizeDemandRecognition(), themeId,
           mapModule:{visible:false},
           departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
           quoteDetails:{visible:false,content:"",rows:defaultQuoteRows(),serviceFee:{enabled:false,rate:"8%"},tax:{enabled:false,rate:"6%"},note:""},
@@ -1420,7 +1485,7 @@
         const date = parseDate(value);
         return date ? `${date.getMonth() + 1}月${date.getDate()}日` : "";
       }
-      function normalizeSavedDates(saved) {
+      function normalizeSavedDates(saved, index = 0, previousThemeId = "") {
         saved.days.forEach(day => {
           const parsed = parseDate(day.date,day.weekday);
           if (parsed) {
@@ -1429,6 +1494,12 @@
           }
         });
         saved.title = normalizeRecognizedTitle(saved.title,saved.days[0]?.date);
+        saved.customerDemand = typeof saved.customerDemand === "string" ? saved.customerDemand : "";
+        saved.demandRecognition = normalizeDemandRecognition(saved.demandRecognition);
+        if (!themeIds.includes(saved.themeId)) {
+          saved.themeId = themeIds[index % themeIds.length];
+          if (saved.themeId === previousThemeId) saved.themeId = themeIds[(index + 1) % themeIds.length];
+        }
         return saved;
       }
       function syncDates(anchorIndex, value) {
@@ -1453,7 +1524,22 @@
         const task = currentTask();
         task.data = data;
         task.updatedAt = Date.now();
+        storeLibrary();
+      }
+      function storeLibrary() {
         localStorage.setItem(LIBRARY_KEY,JSON.stringify(library));
+      }
+      function persistTaskState(taskId, taskData) {
+        const task = library.tasks.find(item => item.id === taskId);
+        if (!task) return;
+        task.data = taskData;
+        task.updatedAt = Date.now();
+        try {
+          storeLibrary();
+          renderTaskMenu();
+        } catch (_) {
+          if (taskId === library.currentId) toast("保存空间不足，请先备份任务库");
+        }
       }
       function save() {
         clearTimeout(saveTimer);
@@ -1515,11 +1601,13 @@
         $("#taskList").innerHTML = sorted.map(task => `
           <div class="task-item ${task.id === library.currentId ? "active" : ""}">
             <button class="task-select" type="button" data-task-id="${task.id}">
-              <strong>${esc(taskDisplayName(task))}</strong>
-              <small>${new Date(task.updatedAt).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</small>
+              <span class="task-color-dot" style="background:${themeFor(task.data?.themeId).primary}" aria-hidden="true"></span>
+              <span class="task-select-copy"><strong>${esc(taskDisplayName(task))}</strong>
+              <small>${new Date(task.updatedAt).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</small></span>
             </button>
             <button class="task-delete" type="button" data-delete-task="${task.id}" ${library.tasks.length === 1 ? "disabled" : ""}>删除</button>
           </div>`).join("");
+        $("#taskThemeOptions").innerHTML = themes.map(theme => `<button class="task-theme-option" type="button" data-theme-id="${theme.id}" aria-label="${theme.label}" title="${theme.label}" aria-pressed="${theme.id === data.themeId}" style="background:${theme.primary}"></button>`).join("");
       }
       function closeTaskMenu() { $("#taskMenu").hidden = true; }
       function switchTask(id) {
@@ -1530,11 +1618,13 @@
         try { persistLibrary(); } catch (_) {}
         library.currentId = id;
         data = task.data;
+        clearReferenceFile();
         closeCalendar();
         closeTaskMenu();
         renderAll();
         updateUndoButton();
-        save();
+        storeLibrary();
+        renderTaskMenu();
         toast(`已切换到：${taskDisplayName(task)}`);
       }
       function createTask(source) {
@@ -1542,15 +1632,27 @@
         try { persistLibrary(); } catch (_) {}
         const id = uid();
         const taskData = source === "duplicate" ? clone(data) : blankTaskData();
+        taskData.themeId = nextThemeId(library.tasks);
         if (source === "duplicate") taskData.title = `${taskBaseName(currentTask())} 副本`;
         library.tasks.push({id,data:taskData,updatedAt:Date.now()});
         library.currentId = id;
         data = taskData;
+        clearReferenceFile();
         closeTaskMenu();
         renderAll();
         updateUndoButton();
         save();
         toast(source === "duplicate" ? "已复制线路" : "已新建线路");
+      }
+      function setCurrentTheme(themeId) {
+        if (!themeIds.includes(themeId) || data.themeId === themeId) return;
+        remember();
+        data.themeId = themeId;
+        applyTheme(data.themeId);
+        renderAll();
+        renderTaskMenu();
+        save();
+        toast(`已切换为${themeFor(themeId).label}系`);
       }
       function openApiModal() {
         closeTaskMenu();
@@ -1728,7 +1830,7 @@
         });
         return [...new Set(result)];
       }
-      function normalizeImportedResult(raw) {
+      function normalizeImportedResult(raw, taskData = data) {
         const text = value => typeof value === "string" ? value.trim() : "";
         const list = value => Array.isArray(value) ? value.map(text).filter(Boolean) : [];
         const warnings = list(raw?.warnings);
@@ -1780,12 +1882,12 @@
         } else if (!hasFullDate) {
           warnings.push("文件未提供年份，已按最近尚未过去的日期自动推算。");
         }
-        const taskData = {
-          title:normalizeRecognizedTitle(text(raw?.title) || data.title,days[0]?.date), days,
-          standards:mergeRecognitionList(data.standards,list(raw?.standards)),
-          notes:mergeRecognitionList(data.notes,list(raw?.notes)), _heights:clone(data?._heights || {})
+        const resultData = {
+          title:normalizeRecognizedTitle(text(raw?.title) || taskData.title,days[0]?.date), days,
+          standards:mergeRecognitionList(taskData.standards,list(raw?.standards)),
+          notes:mergeRecognitionList(taskData.notes,list(raw?.notes)), _heights:clone(taskData?._heights || {})
         };
-        return {data:taskData,warnings:[...new Set(warnings)],missingFields:[...new Set(missingFields)]};
+        return {data:resultData,warnings:[...new Set(warnings)],missingFields:[...new Set(missingFields)]};
       }
       async function requestJson(url,options,provider = "API") {
         let response;
@@ -1831,39 +1933,39 @@
         },"DeepSeek");
         return refreshDeepseekBalance();
       }
-      function setDemandBusy(message) {
-        demandState.busy = true;
-        $("#demandStatus").hidden = false;
-        $("#demandStatus").className = "demand-status busy";
-        $("#demandStatus").textContent = message;
-        $("#demandReview").hidden = true;
-        $("#recognizeDemandBtn").disabled = true;
-        $("#retryDemandRecognitionBtn").disabled = true;
-        $("#applyDemandResultBtn").disabled = true;
+      function demandState(taskData = data) {
+        taskData.demandRecognition ||= normalizeDemandRecognition();
+        return taskData.demandRecognition;
       }
-      function setDemandError(message) {
-        demandState.busy = false;
-        $("#demandStatus").hidden = true;
-        $("#demandStatus").className = "demand-status";
-        $("#demandStatus").textContent = "";
-        $("#demandReview").hidden = true;
-        $("#recognizeDemandBtn").disabled = false;
-        $("#retryDemandRecognitionBtn").disabled = false;
-        $("#applyDemandResultBtn").disabled = false;
-        toast(message);
+      function setDemandBusy(message, taskId = library.currentId, taskData = data) {
+        taskData.demandRecognition = {status:"busy",result:null,sourceName:"",message:String(message || "正在识别…")};
+        if (taskId === library.currentId && taskData === data) renderDemandState();
       }
-      function resetDemandReview() {
-        demandState.result = null;
-        $("#demandStatus").hidden = true;
-        $("#demandReview").hidden = true;
-        $("#retryDemandRecognitionBtn").hidden = true;
-        $("#applyDemandResultBtn").hidden = true;
-        $("#recognizeDemandBtn").hidden = false;
-        $("#recognizeDemandBtn").disabled = false;
+      function setDemandError(message, taskId = library.currentId, taskData = data) {
+        taskData.demandRecognition = {status:"error",result:null,sourceName:"",message:String(message || "识别失败，请稍后重试。")};
+        persistTaskState(taskId,taskData);
+        if (taskId === library.currentId && taskData === data) {
+          renderDemandState();
+          toast(taskData.demandRecognition.message);
+        }
+      }
+      function setDemandResult(result, sourceName, taskId, taskData) {
+        taskData.demandRecognition = {status:"complete",result:clone(result),sourceName:String(sourceName || "客户需求"),message:""};
+        persistTaskState(taskId,taskData);
+        if (taskId === library.currentId && taskData === data) renderDemandState();
+      }
+      function resetDemandReview(taskData = data) {
+        taskData.demandRecognition = normalizeDemandRecognition();
+        if (taskData === data) renderDemandState();
       }
       function updateReferenceFileName() {
         const file = $("#customerReferenceFileInput").files?.[0];
         $("#customerReferenceFileName").textContent = file?.name || "未选择任何文件";
+      }
+      function clearReferenceFile() {
+        $("#customerReferenceFileInput").value = "";
+        $("#customerReferenceDrop").classList.remove("drag-over");
+        updateReferenceFileName();
       }
       function handleDemandDragOver(event) {
         event.preventDefault();
@@ -1879,7 +1981,7 @@
         if (!files?.length) return;
         $("#customerReferenceFileInput").files = files;
         updateReferenceFileName();
-        if (demandState.result) resetDemandReview();
+        if (demandState().result) resetDemandReview();
       }
       function renderDemandReview(result, sourceName) {
         const warningItems = [...result.warnings,...result.missingFields.map(value => `缺失栏目：${value}`)];
@@ -1895,11 +1997,44 @@
         $("#retryDemandRecognitionBtn").disabled = false;
         $("#applyDemandResultBtn").disabled = false;
       }
-      function demandPrompt(text, sourceLabel = "客户需求") {
-        const currentDays = data.days?.length || 0;
-        const currentRoutes = (data.days || []).map((day,index) => `D${index + 1} ${day.route || ""}`).join("\n");
-        const currentStandards = (data.standards || []).join("\n");
-        const currentNotes = (data.notes || []).join("\n");
+      function renderDemandState() {
+        const state = demandState();
+        const status = $("#demandStatus");
+        const review = $("#demandReview");
+        const recognize = $("#recognizeDemandBtn");
+        const retry = $("#retryDemandRecognitionBtn");
+        const apply = $("#applyDemandResultBtn");
+        status.hidden = true;
+        status.className = "demand-status";
+        status.textContent = "";
+        review.hidden = true;
+        recognize.hidden = false;
+        recognize.disabled = false;
+        retry.hidden = true;
+        retry.disabled = false;
+        apply.hidden = true;
+        apply.disabled = false;
+        $("#customerDemandInput").disabled = state.status === "busy";
+        $("#customerReferenceFileBtn").disabled = state.status === "busy";
+        if (state.status === "busy") {
+          status.hidden = false;
+          status.className = "demand-status busy";
+          status.textContent = state.message || "正在识别…";
+          recognize.disabled = true;
+        } else if (state.status === "error") {
+          status.hidden = false;
+          status.className = "demand-status error";
+          status.textContent = state.message;
+          retry.hidden = false;
+        } else if (state.status === "complete" && state.result) {
+          renderDemandReview(state.result,state.sourceName || "客户需求");
+        }
+      }
+      function demandPrompt(text, sourceLabel = "客户需求", taskData = data) {
+        const currentDays = taskData.days?.length || 0;
+        const currentRoutes = (taskData.days || []).map((day,index) => `D${index + 1} ${day.route || ""}`).join("\n");
+        const currentStandards = (taskData.standards || []).join("\n");
+        const currentNotes = (taskData.notes || []).join("\n");
         return `请根据下面的${sourceLabel}生成或提取旅行线路，并严格输出 JSON。
 规则：
 1. 优先遵守客户明确提出的目的地、天数、预算、酒店标准、餐饮、交通和节奏偏好。
@@ -1915,7 +2050,7 @@
 11. 接待标准和特别说明必须以当前已有内容为底稿：保留仍适用的条目，按本次线路修改需要变化的条目，并增加缺少的条目，不得无故清空或整组省略。若新内容与已有条目意思相同，必须原样返回已有条目，不要改写措辞。
 12. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
 
-当前线路标题：${data.title || "未填写"}
+当前线路标题：${taskData.title || "未填写"}
 当前已有天数：${currentDays || "未填写"}
 当前已有路线：
 ${currentRoutes || "无"}
@@ -1930,7 +2065,7 @@ JSON 格式：
 ${sourceLabel}：
 ${text}`;
       }
-      async function recognizeDemandText(text, sourceLabel) {
+      async function recognizeDemandText(text, sourceLabel, taskData = data) {
         const response = await requestJson("https://api.deepseek.com/chat/completions",{
           method:"POST",
           headers:deepseekHeaders(),
@@ -1938,7 +2073,7 @@ ${text}`;
             model:deepseekSettings.model || "deepseek-v4-flash",
             messages:[
               {role:"system",content:"你是旅行线路定制助手。你必须只输出合法 JSON，无法确认的字段留空，不要编造客户未要求的硬性信息。"},
-              {role:"user",content:demandPrompt(text,sourceLabel)}
+              {role:"user",content:demandPrompt(text,sourceLabel,taskData)}
             ],
             response_format:{type:"json_object"},
             stream:false,
@@ -1947,10 +2082,10 @@ ${text}`;
         },"DeepSeek");
         const content = response?.choices?.[0]?.message?.content || "";
         if (!content) throw new Error("DeepSeek 未返回可用的识别结果。");
-        return normalizeImportedResult(parseModelJson(content));
+        return normalizeImportedResult(parseModelJson(content),taskData);
       }
-      function setRecognitionBusy(message) {
-        setDemandBusy(message);
+      function setRecognitionBusy(message, taskId, taskData) {
+        setDemandBusy(message,taskId,taskData);
       }
       function loadScriptOnce(src,globalName,integrity) {
         if (window[globalName]) return Promise.resolve(window[globalName]);
@@ -1967,10 +2102,10 @@ ${text}`;
       async function extractTxt(file) {
         return file.text();
       }
-      async function extractDocx(file) {
-        setRecognitionBusy("正在加载 Word 解析组件…");
+      async function extractDocx(file, taskId, taskData) {
+        setRecognitionBusy("正在加载 Word 解析组件…",taskId,taskData);
         const mammoth = await loadScriptOnce("https://cdn.jsdelivr.net/npm/mammoth@1.9.1/mammoth.browser.min.js","mammoth","sha384-Dmql2RDFhRnFI5K9k2OlF+n+0KL1nR4scY5Akjy8jw8GEbmChSzpsB6Q4Mv+xF0L");
-        setRecognitionBusy("正在读取 Word 文本…");
+        setRecognitionBusy("正在读取 Word 文本…",taskId,taskData);
         const result = await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
         const text = result?.value || "";
         if (!text.trim()) throw new Error("未能从 Word 文件中提取文字，请确认文件不是图片扫描件。");
@@ -1983,22 +2118,22 @@ ${text}`;
         if (/<html|<body|<table|<p[\s>]/i.test(binary)) return new TextDecoder("utf-8").decode(bytes);
         return "";
       }
-      async function extractDoc(file) {
-        setRecognitionBusy("正在读取 Word 文本…");
+      async function extractDoc(file, taskId, taskData) {
+        setRecognitionBusy("正在读取 Word 文本…",taskId,taskData);
         const buffer = await file.arrayBuffer();
         const text = bytesToText(buffer);
         if (text.trim()) return new DOMParser().parseFromString(text,"text/html").body.textContent || text;
         throw new Error("旧版二进制 DOC 无法在浏览器内稳定解析，请另存为 DOCX 或 PDF 后再上传。");
       }
-      async function extractPdf(file) {
-        setRecognitionBusy("正在加载 PDF 解析组件…");
+      async function extractPdf(file, taskId, taskData) {
+        setRecognitionBusy("正在加载 PDF 解析组件…",taskId,taskData);
         const pdfjsLib = await loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","pdfjsLib","sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e");
         pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-        setRecognitionBusy("正在读取 PDF 文本…");
+        setRecognitionBusy("正在读取 PDF 文本…",taskId,taskData);
         const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
         const pages = [];
         for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
-          setRecognitionBusy(`正在读取 PDF 文本… ${pageNo}/${pdf.numPages}`);
+          setRecognitionBusy(`正在读取 PDF 文本… ${pageNo}/${pdf.numPages}`,taskId,taskData);
           const page = await pdf.getPage(pageNo);
           const content = await page.getTextContent();
           pages.push(content.items.map(item => item.str).join(" "));
@@ -2007,51 +2142,52 @@ ${text}`;
         if (!text.trim()) throw new Error("未能从 PDF 中提取文字，扫描件需要先 OCR 后再上传。");
         return text;
       }
-      async function extractReferenceText(file,pasted) {
+      async function extractReferenceText(file,pasted,taskId,taskData) {
         if (pasted.trim()) return pasted.trim();
         if (!file) throw new Error("请选择参考线路文件，或直接粘贴原文。");
         if (file.size > 50 * 1024 * 1024) throw new Error("文件超过 50MB，请压缩或拆分后重试。");
         const extension = file.name.split(".").pop()?.toLowerCase();
         if (extension === "txt") return extractTxt(file);
-        if (extension === "docx") return extractDocx(file);
-        if (extension === "doc") return extractDoc(file);
-        if (extension === "pdf") return extractPdf(file);
+        if (extension === "docx") return extractDocx(file,taskId,taskData);
+        if (extension === "doc") return extractDoc(file,taskId,taskData);
+        if (extension === "pdf") return extractPdf(file,taskId,taskData);
         throw new Error("仅支持 PDF、Word、TXT，或直接粘贴原文。");
       }
       async function startDemandRecognition() {
+        const taskId = library.currentId;
+        const taskData = data;
         const file = $("#customerReferenceFileInput").files?.[0];
-        const demandText = $("#customerDemandInput").value.trim();
-        if (!deepseekSettings.apiKey) return setDemandError("请先在“设置 → API 设置”中保存 API 密钥。");
-        if (!file && !demandText) return setDemandError("请先填写客户需求，或上传参考行程文件。");
-        demandState = {busy:true,result:null,file:file || null};
+        const demandText = String(taskData.customerDemand || "").trim();
+        if (!deepseekSettings.apiKey) return setDemandError("请先在“设置 → API 设置”中保存 API 密钥。",taskId,taskData);
+        if (!file && !demandText) return setDemandError("请先填写客户需求，或上传参考行程文件。",taskId,taskData);
         try {
-          setDemandBusy(file ? "正在读取参考行程…" : "正在整理客户需求…");
-          const fileText = file ? await extractReferenceText(file,"") : "";
+          setDemandBusy(file ? "正在读取参考行程…" : "正在整理客户需求…",taskId,taskData);
+          persistTaskState(taskId,taskData);
+          const fileText = file ? await extractReferenceText(file,"",taskId,taskData) : "";
           const sourceLabel = file ? "客户需求和参考行程" : "客户需求";
           const sourceText = [
             demandText ? `客户需求：\n${demandText}` : "",
             fileText ? `参考行程：\n${fileText}` : ""
           ].filter(Boolean).join("\n\n");
           if (sourceText.length < 12) throw new Error("可识别的文字太少，请补充客户需求或检查文件内容。");
-          setDemandBusy("正在调用 DeepSeek 识别并整理每日行程…");
-          const result = await recognizeDemandText(sourceText.slice(0,260000),sourceLabel);
+          setDemandBusy("正在调用 DeepSeek 识别并整理每日行程…",taskId,taskData);
+          const result = await recognizeDemandText(sourceText.slice(0,260000),sourceLabel,taskData);
           if (sourceText.length > 260000) result.warnings.push("内容过长，已截取前 26 万字进行识别。");
-          demandState = {busy:false,result,file:file || null};
-          renderDemandReview(result,file?.name || "客户需求");
+          setDemandResult(result,file?.name || "客户需求",taskId,taskData);
         } catch (error) {
-          demandState.busy = false;
-          setDemandError(error.message || "识别失败，请稍后重试。");
+          setDemandError(error.message || "识别失败，请稍后重试。",taskId,taskData);
         }
       }
       async function applyDemandResult() {
-        if (!demandState.result) return;
+        const state = demandState();
+        if (!state.result) return;
         if (data.days.length && !await askConfirmation("应用后会替换当前每日行程，并同步更新识别出的标题、标准和说明。03 附加板块不会被修改。","确定应用识别结果吗？")) return;
         remember();
-        const recognized = demandState.result.data;
+        const recognized = state.result.data;
         if (recognized.title) data.title = recognized.title;
         if (recognized.standards?.length) data.standards = clone(recognized.standards);
         if (recognized.notes?.length) data.notes = clone(recognized.notes);
-        data.days = clone(demandState.result.data.days);
+        data.days = clone(state.result.data.days);
         data._heights = clone(data._heights || {});
         resetDemandReview();
         renderAll();
@@ -2116,6 +2252,7 @@ ${text}`;
         if (library.currentId === id) {
           library.currentId = [...library.tasks].sort((a,b) => b.updatedAt - a.updatedAt)[0].id;
           data = currentTask().data;
+          clearReferenceFile();
           renderAll();
           updateUndoButton();
         }
@@ -2145,7 +2282,12 @@ ${text}`;
         try {
           const backup = JSON.parse(await file.text());
           if (!validBackup(backup)) throw new Error("invalid");
-          const restoredTasks = backup.tasks.map(task => ({id:uid(),data:normalizeSavedDates(clone(task.data)),updatedAt:Date.now()}));
+          let previousThemeId = library.tasks[library.tasks.length - 1]?.data?.themeId || "";
+          const restoredTasks = backup.tasks.map((task,index) => {
+            const taskData = normalizeSavedDates(clone(task.data),library.tasks.length + index,previousThemeId);
+            previousThemeId = taskData.themeId;
+            return {id:uid(),data:taskData,updatedAt:Date.now()};
+          });
           persistLibrary();
           library.tasks.push(...restoredTasks);
           save();
@@ -2472,6 +2614,8 @@ ${text}`;
         autosizeQuoteTextareas($("#quoteTableEditor") || document);
       }
       function renderEditor(openIndex = null) {
+        $("#customerDemandInput").value = data.customerDemand || "";
+        renderDemandState();
         $("#titleInput").value = data.title || "";
         data.mapModule = {visible:Boolean(data.mapModule?.visible)};
         const mapVisible = data.mapModule.visible;
@@ -2625,7 +2769,7 @@ ${text}`;
         event.preventDefault();
         editorScroll.scrollTop += delta;
       }
-      function renderAll(openIndex = null) { renderEditor(openIndex); minimizeEmptyTextareas($(".editor-panel")); renderPreview(); }
+      function renderAll(openIndex = null) { applyTheme(data.themeId); renderEditor(openIndex); minimizeEmptyTextareas($(".editor-panel")); renderPreview(); }
       function addDay() {
         remember();
         data.days.push(blankDay(data.days.length));
@@ -2925,6 +3069,10 @@ ${text}`;
         const remove = e.target.closest("[data-delete-task]");
         if (remove) deleteTask(remove.dataset.deleteTask);
       });
+      $("#taskThemePicker").addEventListener("click",e => {
+        const option = e.target.closest("[data-theme-id]");
+        if (option) setCurrentTheme(option.dataset.themeId);
+      });
       $("#newBlankTaskBtn").addEventListener("click",() => { closeImportMenu(); createTask("blank"); });
       $("#duplicateTaskBtn").addEventListener("click",() => { closeImportMenu(); createTask("duplicate"); });
       $("#deepseekSettingsBtn").addEventListener("click",() => { closeSettingsMenu(); openApiModal(); });
@@ -2939,13 +3087,15 @@ ${text}`;
       $("#recognizeDemandBtn").addEventListener("click",startDemandRecognition);
       $("#retryDemandRecognitionBtn").addEventListener("click",startDemandRecognition);
       $("#applyDemandResultBtn").addEventListener("click",applyDemandResult);
-      $("#customerDemandInput").addEventListener("input",() => {
-        if (demandState.result) resetDemandReview();
+      $("#customerDemandInput").addEventListener("input",e => {
+        data.customerDemand = e.target.value;
+        if (demandState().status !== "idle") resetDemandReview();
+        save();
       });
       $("#customerReferenceFileBtn").addEventListener("click",() => $("#customerReferenceFileInput").click());
       $("#customerReferenceFileInput").addEventListener("change",() => {
         updateReferenceFileName();
-        if (demandState.result) resetDemandReview();
+        if (demandState().status !== "idle") resetDemandReview();
       });
       $("#customerReferenceDrop").addEventListener("dragover",handleDemandDragOver);
       $("#customerReferenceDrop").addEventListener("dragleave",clearDemandDragState);
@@ -2997,7 +3147,11 @@ ${text}`;
         closeImportMenu();
         if (!await askConfirmation("当前线路中的修改将被最新版示例覆盖。","确定恢复最新版示例吗？")) return;
         remember();
-        data = normalizeSavedDates(clone(example)); renderAll(); save(); toast("已恢复最新版示例");
+        const currentThemeId = data.themeId;
+        data = normalizeSavedDates(clone(example));
+        data.themeId = currentThemeId;
+        clearReferenceFile();
+        renderAll(); save(); toast("已恢复最新版示例");
       });
       $("#addDayBottom").addEventListener("click",addDay);
       $("#exportTrigger").addEventListener("click",() => toggleMenu("exportTrigger","exportMenu"));
