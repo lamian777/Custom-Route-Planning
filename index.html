@@ -331,12 +331,64 @@
     .route-map-head strong { color: var(--ink); font-size: 15px; }
     .route-map-head small { color: var(--primary); font-size: 11px; font-weight: 700; }
     .route-map-surface { overflow: hidden; border: 1px solid #e4e6e8; border-radius: 12px; background: #f7f8f8; }
-    .route-map-svg { display: block; width: 100%; height: auto; }
-    .route-map-bg { fill: none; stroke: #e5e8ea; stroke-width: 18; opacity: .8; }
-    .route-map-line { fill: none; stroke: var(--primary); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 8 7; }
-    .route-map-node { fill: var(--primary); stroke: #fff; stroke-width: 4; }
-    .route-map-label { fill: var(--ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
-    .route-map-day { fill: var(--muted); font-size: 10px; font-weight: 600; text-anchor: middle; }
+    .route-map-canvas {
+      position: relative; overflow: hidden; aspect-ratio: 920 / 480;
+      border: 1px solid #dedede; border-radius: 14px; background: #fff;
+    }
+    .route-map-layer {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; transform-origin: center; pointer-events: none;
+    }
+    .route-map-base-layer { z-index: 1; }
+    .route-map-image-layer { z-index: 2; }
+    .route-map-placeholder {
+      position: absolute; inset: 0; z-index: 0; display: grid; place-items: center;
+      color: var(--muted); background: linear-gradient(135deg,#f8f8f8,#eeeeee); font-size: 13px;
+    }
+    .route-map-editor-layout { display: grid; gap: 10px; }
+    .route-map-editor-canvas {
+      position: relative; overflow: hidden; aspect-ratio: 920 / 480;
+      border: 1px dashed #d7d9dd; border-radius: 14px; background: #f6f7f8; cursor: grab;
+      touch-action: none; user-select: none;
+    }
+    .route-map-editor-canvas:active { cursor: grabbing; }
+    .route-map-editor-canvas.drag-over { border-color: var(--primary); background: var(--primary-soft); }
+    .route-map-editor-canvas .route-map-placeholder { z-index: 1; border: 0; pointer-events: none; }
+    .route-map-editor-toolbar {
+      position: absolute; left: 10px; top: 10px; right: 10px; z-index: 8;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none;
+    }
+    .route-map-layer-switch {
+      padding: 3px; display: inline-flex; gap: 2px; border: 1px solid rgba(0,0,0,.08);
+      border-radius: 999px; background: rgba(255,255,255,.9); box-shadow: 0 6px 18px rgba(0,0,0,.08);
+      pointer-events: auto;
+    }
+    .route-map-layer-switch button {
+      min-width: 54px; height: 30px; border: 0; border-radius: 999px; background: transparent;
+      color: var(--muted); font-size: 12px; font-weight: 700;
+    }
+    .route-map-layer-switch button.active { color: #fff; background: var(--primary); }
+    .route-map-delete-layer {
+      width: 32px; height: 32px; border: 1px solid rgba(0,0,0,.08); border-radius: 50%;
+      background: rgba(255,255,255,.92); color: var(--danger); box-shadow: 0 6px 18px rgba(0,0,0,.08);
+      font-size: 18px; line-height: 1; pointer-events: auto;
+    }
+    .route-map-delete-layer:disabled { opacity: .42; color: var(--muted); cursor: not-allowed; }
+    .route-map-editor-file { display: none; }
+    .route-map-crop-box {
+      position: absolute; z-index: 7; border: 1.5px solid rgba(255,255,255,.95);
+      box-shadow: 0 0 0 1px var(--primary), 0 8px 22px rgba(0,0,0,.13);
+      pointer-events: none;
+    }
+    .route-map-resize-handle {
+      position: absolute; width: 11px; height: 11px; border: 2px solid #fff; border-radius: 2px;
+      background: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,.2); pointer-events: auto;
+    }
+    .route-map-resize-handle[data-map-resize="nw"] { left: -6px; top: -6px; cursor: nwse-resize; }
+    .route-map-resize-handle[data-map-resize="ne"] { right: -6px; top: -6px; cursor: nesw-resize; }
+    .route-map-resize-handle[data-map-resize="sw"] { left: -6px; bottom: -6px; cursor: nesw-resize; }
+    .route-map-resize-handle[data-map-resize="se"] { right: -6px; bottom: -6px; cursor: nwse-resize; }
+    .route-map-editor-hint { color: var(--muted); font-size: 12px; text-align: center; }
     .preview-departure-notice {
       margin: -8px 0 28px; padding: 18px; border: 1px solid var(--primary-border); border-radius: var(--radius);
       background: var(--primary-soft); break-inside: avoid;
@@ -557,7 +609,6 @@
       .calendar-popover { width: min(310px, calc(100vw - 24px)); }
       .preview-shell { padding: 24px 17px; }
       .preview-route-map { padding: 13px; }
-      .route-map-label { font-size: 11px; }
       .preview-title { font-size: 21px; }
       .preview-day { padding-left: 43px; }
       .preview-day-card { min-height: 160px; padding: 12px 13px; }
@@ -592,7 +643,7 @@
         print-color-adjust: exact; -webkit-print-color-adjust: exact;
       }
       .preview-day-label, .info-list li::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .preview-route-map, .route-map-surface, .route-map-line, .route-map-node { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .preview-route-map, .route-map-surface, .route-map-layer { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .info-section { break-inside: avoid; margin-top: 20px; padding-top: 15px; }
       body.print-with-letterhead .letterhead-page-bg {
         display: block; position: fixed; inset: 0; z-index: -1;
@@ -742,7 +793,7 @@
             </label>
             <details class="day-card notice-card" id="routeMapEditor">
               <summary>
-                <span class="notice-summary notice-summary-muted" id="routeMapSummary"><strong>行程地图</strong><small>根据当天路线自动生成</small></span>
+                <span class="notice-summary notice-summary-muted" id="routeMapSummary"><strong>行程地图</strong><small>上传图片生成地图栏</small></span>
                 <label class="visibility-toggle" title="控制客户版是否显示行程地图">
                   <input id="routeMapVisible" type="checkbox">
                   <span>显示</span>
@@ -797,7 +848,7 @@
   <div class="modal-backdrop" id="apiModal" hidden>
     <section class="import-modal" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
       <div class="modal-head">
-        <h2 id="apiModalTitle">DeepSeek API 绑定</h2>
+        <h2 id="apiModalTitle">API 设置</h2>
         <button class="modal-close" id="closeApiBtn" type="button" aria-label="关闭">×</button>
       </div>
       <div class="modal-body api-card">
@@ -882,149 +933,211 @@
       const LETTERHEAD_ASSET_KEY = "global-letterhead";
       const PLAIN_MARGIN = 12;
       const example = {
+        "_heights": {
+                "afternoon": 44,
+                "customerDemandInput": 44,
+                "highlightsInput": 44,
+                "morning": 76,
+                "remark": 44
+        },
+        "customerDemand": "",
         "days": [
                 {
-                        "afternoon": "游览【洪崖洞】夜景，体验吊脚楼风情与夜市美食。",
-                        "breakfast": "—",
-                        "date": "2026-07-16",
+                        "afternoon": "游览【宽窄巷子】，感受成都的历史文化与现代生活交织的独特氛围；随后前往【锦里】，体验古街的繁华与美食。",
+                        "breakfast": "",
+                        "date": "2026-08-01",
                         "dinner": "集体用餐",
-                        "flight": "✈️ 早班机 + 🚌 BUS",
-                        "lodging": "重庆市区酒店",
-                        "lunch": "集体用餐",
-                        "morning": "大连乘机飞往重庆，抵达后导游接站；\n打卡【解放碑商圈】，自由感受都市繁华与网红胜地；",
+                        "flight": "✈️ 飞机 + 🚌 BUS",
+                        "lodging": "成都市区酒店（具体待定）",
+                        "lodgingUrl": "",
+                        "lunch": "",
+                        "morning": "大连乘飞机前往成都，接机送至酒店办理入住。",
                         "remark": "",
-                        "route": "大连 — 重庆",
-                        "weekday": "周四",
-                        "lodgingUrl": ""
+                        "route": "大连→成都",
+                        "weekday": "周六"
                 },
                 {
-                        "afternoon": "体验【长江索道】，游览【南山一棵树观景台】，俯瞰重庆城市风光。",
+                        "afternoon": "游览【武侯祠】，了解三国文化；随后游览【杜甫草堂】，感受诗圣杜甫的故居风貌。",
                         "breakfast": "酒店含",
-                        "date": "2026-07-17",
-                        "dinner": "集体用餐",
-                        "flight": "🚌 BUS",
-                        "lodging": "重庆市区酒店",
-                        "lunch": "集体用餐",
-                        "morning": "游览【磁器口古镇】，感受巴渝民俗文化和古街美食；",
-                        "remark": "",
-                        "route": "重庆",
-                        "weekday": "周五",
-                        "lodgingUrl": ""
-                },
-                {
-                        "afternoon": "抵达成都后游览【锦里古街】及【宽窄巷子】，感受巴蜀历史文化氛围。",
-                        "breakfast": "酒店含",
-                        "date": "2026-07-18",
-                        "dinner": "集体用餐",
-                        "flight": "🚄 高铁 + 🚌 BUS",
-                        "lodging": "成都市区酒店",
-                        "lunch": "集体用餐",
-                        "morning": "乘坐高铁前往成都（约2小时），沿途欣赏川渝风光；",
-                        "remark": "",
-                        "route": "重庆 — 成都",
-                        "weekday": "周六",
-                        "lodgingUrl": ""
-                },
-                {
-                        "afternoon": "游览道教名山【青城山】，漫步绿意竹林，感受自然仙境。",
-                        "breakfast": "酒店含",
-                        "date": "2026-07-19",
+                        "date": "2026-08-02",
                         "dinner": "集体用餐",
                         "flight": "🚌 BUS",
-                        "lodging": "成都市区酒店",
+                        "lodging": "成都市区酒店（具体待定）",
+                        "lodgingUrl": "",
                         "lunch": "集体用餐",
-                        "morning": "游览世界文化遗产【都江堰景区】，体验千年水利奇迹；",
+                        "morning": "游览【大熊猫繁育研究基地】，近距离观赏国宝大熊猫的憨态可掬。",
                         "remark": "",
-                        "route": "成都 — 都江堰 — 青城山",
-                        "weekday": "周日",
-                        "lodgingUrl": ""
+                        "route": "成都",
+                        "weekday": "周日"
                 },
                 {
-                        "afternoon": "前往【峨眉⼭】，游报国寺等景点，体验⾦顶仙境⻛光（缆⻋⾃理）。",
+                        "afternoon": "游览【文殊院】，感受佛教文化，品尝素斋。",
                         "breakfast": "酒店含",
-                        "date": "2026-07-20",
+                        "date": "2026-08-03",
                         "dinner": "集体用餐",
-                        "flight": "🚌 BUS",
-                        "lodging": "峨眉山景区酒店",
+                        "flight": " 🚌 BUS",
+                        "lodging": "成都市区酒店（具体待定）",
+                        "lodgingUrl": "",
                         "lunch": "集体用餐",
-                        "morning": "游览【乐⼭⼤佛】，欣赏世界最⼤⽯刻佛像壮丽景观；",
+                        "morning": "参观【金沙遗址博物馆】，欣赏太阳神鸟等珍贵文物，了解古蜀文化。",
                         "remark": "",
-                        "route": "成都 — 乐⼭ — 峨眉⼭",
-                        "weekday": "周一",
-                        "lodgingUrl": ""
+                        "route": "成都",
+                        "weekday": "周一"
                 },
                 {
-                        "afternoon": "前往双流机场，乘机返回大连，结束旅程。",
+                        "afternoon": "",
                         "breakfast": "酒店含",
-                        "date": "2026-07-21",
-                        "dinner": "—",
-                        "flight": "🚌 BUS + ✈️ 飞机",
-                        "lodging": "—",
-                        "lunch": "自理",
-                        "morning": "自由活动；",
+                        "date": "2026-08-04",
+                        "dinner": "",
+                        "flight": "🚌 BUS + ✈️ 飞机 ",
+                        "lodging": "",
+                        "lodgingUrl": "",
+                        "lunch": "",
+                        "morning": "自由活动，根据航班时间专车送机，结束愉快的旅程。",
                         "remark": "",
-                        "route": "成都 — 大连",
-                        "weekday": "周二",
-                        "lodgingUrl": ""
+                        "route": "成都→大连",
+                        "weekday": "周二"
                 }
         ],
+        "demandRecognition": {
+                "message": "",
+                "result": null,
+                "sourceName": "",
+                "status": "idle"
+        },
         "departureNotice": {
-                "flight": "07.16  大连-重庆  CZ6579（07:40-11:05）\n07.21  成都-大连  CZ6434（13:10-16:20）",
-                "guide": "张三 13190119100",
-                "meeting": "2026.07.16 早08:30  大连机场2楼出发厅4号门内",
+                "flight": "",
+                "guide": "张三 1319XXXXXXX",
+                "meeting": "2026.08.01早08:30  大连机场2楼出发厅4号门内",
                 "notes": "",
-                "vehicle": "渝A-99999",
+                "vehicle": "川A-99999",
                 "visible": false,
-                "weather": "重庆 24℃～31℃           成都 23℃～28℃"
+                "weather": ""
         },
         "highlights": "",
         "mapModule": {
+                "baseBrightness": 1,
+                "baseImage": "",
+                "baseOpacity": 1,
+                "baseTransform": {
+                        "scale": 1,
+                        "x": 0,
+                        "y": 0
+                },
+                "editingLayer": "base",
+                "mapBrightness": 1,
+                "mapImage": "",
+                "mapOpacity": 1,
+                "mapTransform": {
+                        "scale": 1,
+                        "x": 0,
+                        "y": 0
+                },
                 "visible": false
         },
         "notes": [
                 "游客须携带有效身份证件（因忘带或遗失导致无法乘机或入住酒店责任自理）；",
                 "游客自愿放弃餐食/住宿/景点或自愿离团，我社将不予返还费用；",
-                "如需购买儿童/老年/军人等优惠票，请现场主动告知导游，并提供相关证明，否则按成人购票；",
                 "不减少行程内容前提下，经半数以上游客同意，导游可根据实际情况调整游览顺序；",
                 "因天气/政策/战争等不可抗力因素造成的团队滞留或政策性调价产生的费用，需游客自理，我社可协助解决；"
         ],
         "quoteDetails": {
-                "content": "机票：\n高铁：\n房费：\n会议：\n车费：\n餐费：\n门票：\n导游：\n全陪：\n保险：\n其他：\n合计：",
+                "note": "暂按____人独立成团核算，人数不足价格另议；",
                 "rows": [
-                        {"type":"item","project":"航班","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
-                        {"type":"item","project":"交通","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
-                        {"type":"item","project":"酒店","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
-                        {"type":"item","project":"景点","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
-                        {"type":"item","project":"餐饮","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
-                        {"type":"item","project":"人工","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
-                        {"type":"item","project":"保险","content":"","unitPrice":"","quantity":"","times":"1","remark":""},
-                        {"type":"item","project":"其他","content":"","unitPrice":"","quantity":"","times":"1","remark":""}
+                        {
+                                "content": "大连/___往返经济舱含税",
+                                "project": "航班",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        },
+                        {
+                                "content": "___座空调旅游巴士",
+                                "project": "交通",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        },
+                        {
+                                "content": "当地4钻酒店双标/大床",
+                                "project": "酒店",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        },
+                        {
+                                "content": "行程所列景点首道门票",
+                                "project": "景点",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        },
+                        {
+                                "content": "社会餐厅围桌",
+                                "project": "餐饮",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        },
+                        {
+                                "content": "当地持证导游",
+                                "project": "人工",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        },
+                        {
+                                "content": "旅行意外险20万/人",
+                                "project": "保险",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        },
+                        {
+                                "content": "",
+                                "project": "其他",
+                                "quantity": "",
+                                "remark": "",
+                                "times": "1",
+                                "type": "item",
+                                "unitPrice": ""
+                        }
                 ],
-                "serviceFee":{"enabled":true,"rate":"8%"},
-                "tax":{"enabled":true,"rate":"6%"},
-                "note":"",
+                "serviceFee": {
+                        "enabled": true,
+                        "rate": "8%"
+                },
+                "tax": {
+                        "enabled": true,
+                        "rate": "6%"
+                },
                 "visible": false
         },
         "standards": [
-                "航班：大连/重庆 成都/大连往返经济舱含税，时间及价格以出票为准；",
-                "交通：当地空调旅游巴士（保证每人1正座）；",
-                "住宿：行程所列酒店双标或大床（单房差      元/人）；",
-                "用餐：5早餐（酒店含，不用不退），7正餐（餐标      元/人），详见安排；",
+                "航班：大连/___往返经济舱含税，时间及价格以出票为准；",
+                "交通：当地营运空调旅游巴士（保证每人1正座）；",
+                "住宿：行程所列酒店双标/大床（单房差___元/人）；",
+                "用餐：___早餐（酒店含，不用不退），___正餐（餐标___元/桌），详见安排；",
+                "景区：行程内所列景点首道门票（不含自费）；",
                 "导游：当地持证导游服务（不含全陪）；",
-                "景点：行程内所列项目首道门票（不含自费）；",
-                "保险：旅行社责任险、旅游意外险，最终解决权归保险公司；"
+                "保险：旅行社责任险、旅行意外险，最终解决权归保险公司；"
         ],
-        "title": "07.16 重庆+成都双飞6日游",
-        "customerDemand": "",
-        "demandRecognition": {"status":"idle","result":null,"sourceName":"","message":""},
         "themeId": "blue",
-        "_heights": {
-                "morning": 76,
-                "afternoon": 76,
-                "customerDemandInput": 44,
-                "highlightsInput": 44,
-                "remark": 44
-        }
+        "title": "08.01 成都双飞4日游"
 };
       const fields = [
         ["route","当天路线","例如：大连 — 重庆","input"],
@@ -1054,6 +1167,33 @@
       const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
       const lines = value => String(value || "").split("\n").map(v => v.trim()).filter(Boolean);
       const weekdays = ["周日","周一","周二","周三","周四","周五","周六"];
+      function normalizeMapModule(value) {
+        const map = value && typeof value === "object" ? value : {};
+        const clamp = (value,min,max,fallback) => {
+          const number = Number(value);
+          return Number.isFinite(number) ? Math.min(max,Math.max(min,number)) : fallback;
+        };
+        const transform = value => {
+          const item = value && typeof value === "object" ? value : {};
+          return {
+            scale:clamp(item.scale,.5,2,1),
+            x:clamp(item.x,-50,50,0),
+            y:clamp(item.y,-50,50,0)
+          };
+        };
+        return {
+          visible:Boolean(map.visible),
+          editingLayer:map.editingLayer === "map" ? "map" : "base",
+          baseImage:String(map.baseImage || ""),
+          baseOpacity:clamp(map.baseOpacity,0,1,1),
+          baseBrightness:clamp(map.baseBrightness,.4,1.6,1),
+          baseTransform:transform(map.baseTransform),
+          mapImage:String(map.mapImage || ""),
+          mapOpacity:clamp(map.mapOpacity,0,1,1),
+          mapBrightness:clamp(map.mapBrightness,.4,1.6,1),
+          mapTransform:transform(map.mapTransform)
+        };
+      }
       function normalizeDemandRecognition(value) {
         value ||= {};
         const validStatus = ["idle","busy","complete","error"].includes(value?.status) ? value.status : "idle";
@@ -1086,83 +1226,188 @@
       function themeFor(themeId) {
         return themes.find(theme => theme.id === themeId) || themes[0];
       }
-      function extractRouteStops(days = []) {
-        const stops = [];
-        days.forEach((day,index) => {
-          const names = String(day?.route || "")
-            .split(/\s*(?:—|–|-|→|➜|➡|>|\/|\n)\s*/)
-            .map(name => name.trim())
-            .filter(Boolean);
-          names.forEach(name => {
-            const dayNumber = index + 1;
-            const previous = stops[stops.length - 1];
-            if (previous?.name === name) previous.endDay = dayNumber;
-            else stops.push({name,startDay:dayNumber,endDay:dayNumber});
-          });
-        });
-        return stops;
+      function hasRouteMapImage(value) {
+        const map = normalizeMapModule(value);
+        return Boolean(map.baseImage || map.mapImage);
       }
-      function routeMapLayout(stops = []) {
-        const width = 720;
-        const margin = 74;
-        const perRow = 5;
-        return stops.map((stop,index) => {
-          const row = Math.floor(index / perRow);
-          const column = index % perRow;
-          const count = Math.min(perRow,stops.length - row * perRow);
-          const slot = row % 2 ? count - 1 - column : column;
-          const x = count === 1 ? width / 2 : margin + slot * (width - margin * 2) / (count - 1);
-          return {...stop,row,x,y:58 + row * 116};
-        });
+      function routeMapImageStyle(layer) {
+        layer ||= {};
+        const number = value => Number(Number(value).toFixed(3));
+        const transform = layer.transform || {};
+        const opacity = number(layer.opacity ?? 1);
+        const brightness = number(layer.brightness ?? 1);
+        const x = number(transform.x || 0);
+        const y = number(transform.y || 0);
+        const scale = number(transform.scale || 1);
+        return `opacity:${opacity}; filter:brightness(${brightness}); transform:translate(${x}%,${y}%) scale(${scale});`;
       }
-      function routeMapPath(points = []) {
-        return points.reduce((path,point,index) => {
-          if (!index) return `M ${point.x} ${point.y}`;
-          const previous = points[index - 1];
-          const midX = (previous.x + point.x) / 2;
-          const midY = (previous.y + point.y) / 2 + (previous.row === point.row ? (index % 2 ? -10 : 10) : 0);
-          return `${path} Q ${midX} ${midY} ${point.x} ${point.y}`;
-        },"");
+      function routeMapImageSrc(value) {
+        return String(value || "").split('"').join("%22");
       }
-      function routeDayLabel(stop) {
-        return stop.startDay === stop.endDay ? `D${stop.startDay}` : `D${stop.startDay}–${stop.endDay}`;
+      function renderRouteMapSurface(mapModule) {
+        mapModule ||= {};
+        const map = normalizeMapModule(mapModule);
+        if (!hasRouteMapImage(map)) return "";
+        const baseLayer = map.baseImage ? `<img class="route-map-layer route-map-base-layer" src="${routeMapImageSrc(map.baseImage)}" alt="" style="${routeMapImageStyle({opacity:map.baseOpacity,brightness:map.baseBrightness,transform:map.baseTransform})}">` : "";
+        const imageLayer = map.mapImage ? `<img class="route-map-layer route-map-image-layer" src="${routeMapImageSrc(map.mapImage)}" alt="" style="${routeMapImageStyle({opacity:map.mapOpacity,brightness:map.mapBrightness,transform:map.mapTransform})}">` : "";
+        return `<div class="route-map-surface"><div class="route-map-canvas" role="img" aria-label="行程地图"><div class="route-map-placeholder">地图图片预览</div>${baseLayer}${imageLayer}</div></div>`;
       }
-      function routeMapDisplayName(name) {
-        const value = String(name || "");
-        return value.length > 8 ? `${value.slice(0,7)}…` : value;
-      }
-      function renderRouteMapSurface(days = []) {
-        const stops = extractRouteStops(days);
-        if (!stops.length) return "";
-        const points = routeMapLayout(stops);
-        const height = points[points.length - 1].y + 58;
-        const nodes = points.map(point => `
-          <g>
-            <circle class="route-map-node" cx="${point.x}" cy="${point.y}" r="9"></circle>
-            <text class="route-map-label" x="${point.x}" y="${point.y + 27}"><title>${esc(point.name)}</title>${esc(routeMapDisplayName(point.name))}</text>
-            <text class="route-map-day" x="${point.x}" y="${point.y + 43}">${routeDayLabel(point)}</text>
-          </g>`).join("");
-        return `<div class="route-map-surface" data-map-provider="schematic">
-          <svg class="route-map-svg" viewBox="0 0 720 ${height}" role="img" aria-label="行程线路示意图">
-            <path class="route-map-bg" d="M -30 ${height * .28} C 120 ${height * .05} 220 ${height * .52} 390 ${height * .25} S 610 ${height * .08} 760 ${height * .32}"></path>
-            <path class="route-map-bg" d="M -30 ${height * .78} C 140 ${height * .52} 250 ${height * .98} 420 ${height * .7} S 610 ${height * .5} 760 ${height * .75}"></path>
-            <path class="route-map-line" d="${routeMapPath(points)}"></path>
-            ${nodes}
-          </svg>
-        </div>`;
-      }
-      function renderRouteMap(days = []) {
-        const surface = renderRouteMapSurface(days);
+      function renderRouteMap(mapModule) {
+        mapModule ||= {};
+        const surface = renderRouteMapSurface(mapModule);
         if (!surface) return "";
         return `<section class="preview-route-map">
-          <div class="route-map-head"><strong>行程地图</strong><small>线路示意</small></div>
+          <div class="route-map-head"><strong>行程地图</strong><small>图片地图</small></div>
           ${surface}
         </section>`;
+      }
+      function routeMapEditorLayerHtml(map,kind) {
+        const imageKey = `${kind}Image`;
+        const opacityKey = `${kind}Opacity`;
+        const brightnessKey = `${kind}Brightness`;
+        const transformKey = `${kind}Transform`;
+        if (!map[imageKey]) return "";
+        const active = map.editingLayer === kind;
+        return `<img class="route-map-layer route-map-${kind === "base" ? "base" : "image"}-layer ${active ? "active" : ""}" src="${routeMapImageSrc(map[imageKey])}" alt="" style="${routeMapImageStyle({opacity:map[opacityKey],brightness:map[brightnessKey],transform:map[transformKey]})}">`;
+      }
+      function routeMapCropBoxStyle(map,kind) {
+        const transform = map[`${kind}Transform`];
+        const scale = Math.max(.5,Math.min(2,Number(transform.scale) || 1));
+        const width = 100 * scale;
+        const height = 100 * scale;
+        const left = 50 + (Number(transform.x) || 0) - width / 2;
+        const top = 50 + (Number(transform.y) || 0) - height / 2;
+        return `left:${left}%; top:${top}%; width:${width}%; height:${height}%;`;
+      }
+      function renderRouteMapEditorCanvas() {
+        const map = normalizeMapModule(data.mapModule);
+        const activeLayer = map.editingLayer;
+        const hasActiveImage = Boolean(map[`${activeLayer}Image`]);
+        const cropBox = hasActiveImage ? `<div class="route-map-crop-box" style="${routeMapCropBoxStyle(map,activeLayer)}">
+          <span class="route-map-resize-handle" data-map-resize="nw"></span>
+          <span class="route-map-resize-handle" data-map-resize="ne"></span>
+          <span class="route-map-resize-handle" data-map-resize="sw"></span>
+          <span class="route-map-resize-handle" data-map-resize="se"></span>
+        </div>` : "";
+        return `<div class="route-map-editor-canvas" data-map-dropzone>
+          <input class="route-map-editor-file" type="file" accept="image/*" data-map-file>
+          <div class="route-map-placeholder">${hasRouteMapImage(map) ? "点击或拖入图片替换当前图层" : "拖入图片到这里"}</div>
+          ${routeMapEditorLayerHtml(map,"base")}
+          ${routeMapEditorLayerHtml(map,"map")}
+          ${cropBox}
+          <div class="route-map-editor-toolbar">
+            <div class="route-map-layer-switch" role="group" aria-label="选择编辑图层">
+              <button type="button" class="${activeLayer === "base" ? "active" : ""}" data-map-layer="base">下层</button>
+              <button type="button" class="${activeLayer === "map" ? "active" : ""}" data-map-layer="map">上层</button>
+            </div>
+            <button class="route-map-delete-layer" type="button" data-map-delete-layer aria-label="删除当前图层" title="删除当前图层" ${hasActiveImage ? "" : "disabled"}>×</button>
+          </div>
+        </div>`;
+      }
+      function updateRouteMapEditorImageStyles() {
+        data.mapModule = normalizeMapModule(data.mapModule);
+        renderMapEditorPreview();
+      }
+      function chooseRouteMapDropLayer() {
+        const map = normalizeMapModule(data.mapModule);
+        if (!map.baseImage) return "base";
+        if (!map.mapImage) return "map";
+        return map.editingLayer;
+      }
+      function setRouteMapEditingLayer(kind) {
+        if (!["base","map"].includes(kind)) return;
+        remember();
+        data.mapModule = normalizeMapModule(data.mapModule);
+        data.mapModule.editingLayer = kind;
+        renderMapEditorPreview();
+        save();
+      }
+      function setRouteMapLayerImage(kind,file) {
+        if (!["base","map"].includes(kind) || !file) return;
+        if (!file.type.startsWith("image/")) {
+          toast("请上传图片文件");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          remember();
+          data.mapModule = normalizeMapModule(data.mapModule);
+          data.mapModule[`${kind}Image`] = String(reader.result || "");
+          data.mapModule.editingLayer = kind === "base" && !data.mapModule.mapImage ? "map" : kind;
+          renderMapEditorPreview();
+          renderPreview();
+          save();
+          toast(kind === "base" ? "下层图片已添加" : "上层图片已添加");
+        };
+        reader.onerror = () => toast("图片读取失败");
+        reader.readAsDataURL(file);
+      }
+      function deleteRouteMapEditingLayer() {
+        remember();
+        data.mapModule = normalizeMapModule(data.mapModule);
+        const kind = data.mapModule.editingLayer;
+        data.mapModule[`${kind}Image`] = "";
+        if (!hasRouteMapImage(data.mapModule)) {
+          data.mapModule.visible = false;
+          $("#routeMapVisible").checked = false;
+          $("#routeMapSummary").classList.remove("notice-summary-active");
+          $("#routeMapSummary").classList.add("notice-summary-muted");
+        }
+        renderMapEditorPreview();
+        renderPreview();
+        save();
+        toast(kind === "base" ? "下层图片已删除" : "上层图片已删除");
+      }
+      function beginRouteMapPointerEdit(event) {
+        const canvas = event.target.closest("[data-map-dropzone]");
+        if (!canvas || event.target.closest(".route-map-editor-toolbar")) return;
+        data.mapModule = normalizeMapModule(data.mapModule);
+        const kind = data.mapModule.editingLayer;
+        if (!data.mapModule[`${kind}Image`]) return;
+        event.preventDefault();
+        const resize = event.target.dataset.mapResize || "";
+        const rect = canvas.getBoundingClientRect();
+        const start = {x:event.clientX,y:event.clientY};
+        const original = {...data.mapModule[`${kind}Transform`]};
+        const sign = resize === "nw" || resize === "sw" ? -1 : 1;
+        const mode = resize ? "resize" : "move";
+        remember();
+        canvas.setPointerCapture?.(event.pointerId);
+        let changed = false;
+        const apply = moveEvent => {
+          const dx = moveEvent.clientX - start.x;
+          const dy = moveEvent.clientY - start.y;
+          data.mapModule = normalizeMapModule(data.mapModule);
+          const transform = data.mapModule[`${kind}Transform`];
+          if (mode === "move") {
+            transform.x = Math.max(-50,Math.min(50,original.x + dx / rect.width * 100));
+            transform.y = Math.max(-50,Math.min(50,original.y + dy / rect.height * 100));
+          } else {
+            const delta = sign * dx / rect.width * 2;
+            transform.scale = Math.max(.5,Math.min(2,original.scale + delta));
+          }
+          changed = true;
+          updateRouteMapEditorImageStyles();
+          renderPreview();
+        };
+        const finish = () => {
+          window.removeEventListener("pointermove",apply);
+          window.removeEventListener("pointerup",finish);
+          window.removeEventListener("pointercancel",finish);
+          if (changed) save();
+        };
+        window.addEventListener("pointermove",apply);
+        window.addEventListener("pointerup",finish,{once:true});
+        window.addEventListener("pointercancel",finish,{once:true});
       }
       function renderMapEditorPreview() {
         const container = $("#routeMapEditorPreview");
         if (!container) return;
-        container.innerHTML = renderRouteMapSurface(data.days) || `<div class="route-map-empty">填写每日的“当天路线”后自动生成</div>`;
+        data.mapModule = normalizeMapModule(data.mapModule);
+        container.innerHTML = `<div class="route-map-editor-layout">
+          ${renderRouteMapEditorCanvas()}
+          <div class="route-map-editor-hint">拖动图片调整显示区域，拖拽边角缩放。先上传下层，后上传上层。</div>
+        </div>`;
       }
       let library = loadLibrary();
       let data = currentTask().data;
@@ -1465,7 +1710,7 @@
       function blankTaskData(themeId = nextThemeId(library.tasks)) {
         return {
           title:"", highlights:"", customerDemand:"", demandRecognition:normalizeDemandRecognition(), themeId,
-          mapModule:{visible:false},
+          mapModule:normalizeMapModule(),
           departureNotice:{visible:false,guide:"",vehicle:"",meeting:"",flight:"",weather:"",notes:""},
           quoteDetails:{visible:false,content:"",rows:defaultQuoteRows(),serviceFee:{enabled:false,rate:"8%"},tax:{enabled:false,rate:"6%"},note:""},
           days:[{date:"",weekday:"",route:"",morning:"",afternoon:"",remark:"",lodging:"",lodgingUrl:"",breakfast:"酒店含",lunch:"",dinner:"",flight:""}],
@@ -1504,6 +1749,7 @@
         saved.title = normalizeRecognizedTitle(saved.title,saved.days[0]?.date);
         saved.customerDemand = typeof saved.customerDemand === "string" ? saved.customerDemand : "";
         saved.demandRecognition = normalizeDemandRecognition(saved.demandRecognition);
+        saved.mapModule = normalizeMapModule(saved.mapModule);
         if (!themeIds.includes(saved.themeId)) {
           saved.themeId = themeIds[index % themeIds.length];
           if (saved.themeId === previousThemeId) saved.themeId = themeIds[(index + 1) % themeIds.length];
@@ -2625,8 +2871,8 @@ ${text}`;
         $("#customerDemandInput").value = data.customerDemand || "";
         renderDemandState();
         $("#titleInput").value = data.title || "";
-        data.mapModule = {visible:Boolean(data.mapModule?.visible)};
-        const mapVisible = data.mapModule.visible;
+        data.mapModule = normalizeMapModule(data.mapModule);
+        const mapVisible = data.mapModule.visible && hasRouteMapImage(data.mapModule);
         $("#routeMapVisible").checked = mapVisible;
         $("#routeMapSummary").classList.toggle("notice-summary-active",mapVisible);
         $("#routeMapSummary").classList.toggle("notice-summary-muted",!mapVisible);
@@ -2671,7 +2917,7 @@ ${text}`;
       function renderPreview() {
         document.title = data.title || "旅行线路定制";
         const notice = data.departureNotice || {};
-        const routeMap = data.mapModule?.visible ? renderRouteMap(data.days) : "";
+        const routeMap = data.mapModule?.visible ? renderRouteMap(data.mapModule) : "";
         const departureNotice = notice.visible ? `
           <section class="preview-departure-notice">
             <dl class="notice-list">${noticeFields.filter(([field]) => requiredNoticeFields.has(field) || notice[field]).map(([field,label,,wide]) => `
@@ -2815,18 +3061,60 @@ ${text}`;
       $("#titleInput").addEventListener("input", e => { rememberEdit(e.target); data.title = e.target.value; renderPreview(); save(); });
       $("#routeMapVisible").addEventListener("click", e => e.stopPropagation());
       $("#routeMapVisible").addEventListener("change", e => {
-        if (e.target.checked && !extractRouteStops(data.days).length) {
+        data.mapModule = normalizeMapModule(data.mapModule);
+        if (e.target.checked && !hasRouteMapImage(data.mapModule)) {
           e.target.checked = false;
-          toast("请先填写当天路线");
+          toast("请先上传地图图片");
           return;
         }
         remember();
-        data.mapModule = {visible:e.target.checked};
+        data.mapModule.visible = e.target.checked;
         $("#routeMapSummary").classList.toggle("notice-summary-active",e.target.checked);
         $("#routeMapSummary").classList.toggle("notice-summary-muted",!e.target.checked);
         renderPreview(); save();
         toast(e.target.checked ? "行程地图已显示" : "行程地图已隐藏");
       });
+      $("#routeMapEditorPreview").addEventListener("change", e => {
+        if (!e.target.matches("[data-map-file]")) return;
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        setRouteMapLayerImage(chooseRouteMapDropLayer(),file);
+      });
+      $("#routeMapEditorPreview").addEventListener("click", e => {
+        const layer = e.target.dataset.mapLayer;
+        if (layer) {
+          setRouteMapEditingLayer(layer);
+          return;
+        }
+        if (e.target.closest("[data-map-delete-layer]")) {
+          deleteRouteMapEditingLayer();
+          return;
+        }
+        const canvas = e.target.closest("[data-map-dropzone]");
+        if (canvas && !e.target.dataset.mapResize) canvas.querySelector("[data-map-file]")?.click();
+      });
+      $("#routeMapEditorPreview").addEventListener("dragover", e => {
+        const canvas = e.target.closest("[data-map-dropzone]");
+        if (!canvas) return;
+        e.preventDefault();
+        canvas.classList.add("drag-over");
+      });
+      $("#routeMapEditorPreview").addEventListener("dragleave", e => {
+        const canvas = e.target.closest("[data-map-dropzone]");
+        if (!canvas || canvas.contains(e.relatedTarget)) return;
+        canvas.classList.remove("drag-over");
+      });
+      $("#routeMapEditorPreview").addEventListener("drop", e => {
+        const canvas = e.target.closest("[data-map-dropzone]");
+        if (!canvas) return;
+        e.preventDefault();
+        canvas.classList.remove("drag-over");
+        const file = [...(e.dataTransfer?.files || [])].find(file => file.type.startsWith("image/"));
+        if (!file) return toast("请拖入图片文件");
+        setRouteMapLayerImage(chooseRouteMapDropLayer(),file);
+      });
+      $("#routeMapEditorPreview").addEventListener("pointerdown", beginRouteMapPointerEdit);
       $("#departureNoticeVisible").addEventListener("click", e => e.stopPropagation());
       $("#departureNoticeVisible").addEventListener("change", e => {
         const missing = noticeFields.filter(([field]) => requiredNoticeFields.has(field) && !String(data.departureNotice?.[field] || "").trim()).map(([,label]) => label);

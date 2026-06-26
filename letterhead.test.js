@@ -38,6 +38,14 @@ function extractFunction(name) {
   throw new Error(`unterminated function ${name}`);
 }
 
+function extractBundledExample() {
+  const exampleStart = html.indexOf("const example = {");
+  const exampleEnd = html.indexOf("const fields = [",exampleStart);
+  assert.notEqual(exampleStart,-1,"missing bundled example");
+  assert.notEqual(exampleEnd,-1,"missing bundled example end");
+  return new Function(`${html.slice(exampleStart,exampleEnd)}\nreturn example;`)();
+}
+
 function loadFunction(name) {
   return Function(`${extractFunction(name)}\nreturn ${name};`)();
 }
@@ -222,27 +230,26 @@ test("prefixes recognized titles with the first departure date", () => {
 });
 
 test("keeps the bundled example title aligned with its first day", () => {
-  const exampleStart = html.indexOf("const example = {");
-  const exampleEnd = html.indexOf("const fields = [",exampleStart);
-  const exampleSource = html.slice(exampleStart,exampleEnd);
+  const example = extractBundledExample();
+  const [,month,day] = example.days[0].date.split("-");
 
-  assert.match(exampleSource,/"date": "2026-07-16"/);
-  assert.match(exampleSource,/"title": "07\.16 重庆\+成都双飞6日游"/);
+  assert.equal(example.days[0].date,"2026-08-01");
+  assert.equal(example.title,`${month}.${day} 成都双飞4日游`);
 });
 
 test("uses the saved blue route as the only bundled example", () => {
-  const exampleStart = html.indexOf("const example = {");
-  const exampleEnd = html.indexOf("const fields = [",exampleStart);
-  const exampleSource = html.slice(exampleStart,exampleEnd);
+  const example = extractBundledExample();
 
-  assert.match(exampleSource,/"themeId": "blue"/);
-  assert.match(exampleSource,/"title": "07\.16 重庆\+成都双飞6日游"/);
-  assert.match(exampleSource,/"departureNotice": \{[\s\S]*?"visible": false/s);
-  assert.match(exampleSource,/"mapModule": \{\s*"visible": false\s*\}/s);
-  assert.match(exampleSource,/"serviceFee":\{"enabled":true,"rate":"8%"\}/);
-  assert.match(exampleSource,/"tax":\{"enabled":true,"rate":"6%"\}/);
-  assert.match(exampleSource,/如需购买儿童\/老年\/军人等优惠票/);
-  assert.match(exampleSource,/"_heights": \{/);
+  assert.equal(example.themeId,"blue");
+  assert.equal(example.title,"08.01 成都双飞4日游");
+  assert.equal(example.departureNotice.visible,false);
+  assert.equal(example.mapModule.visible,false);
+  assert.equal(example.mapModule.baseImage,"");
+  assert.equal(example.mapModule.mapImage,"");
+  assert.deepEqual(example.quoteDetails.serviceFee,{enabled:true,rate:"8%"});
+  assert.deepEqual(example.quoteDetails.tax,{enabled:true,rate:"6%"});
+  assert.match(example.notes.join("\n"),/游客须携带有效身份证件/);
+  assert.ok(example._heights);
 });
 
 test("keeps existing standards and notes while adding recognized items", () => {
@@ -332,63 +339,130 @@ test("places an independently toggleable route map above departure notice", () =
   assert.match(html, /id="routeMapEditorPreview"/);
 });
 
-test("extracts route stops, merges adjacent repeats, and preserves return visits", () => {
-  const extractRouteStops = loadFunction("extractRouteStops");
-  const stops = extractRouteStops([
-    {route:"\u5927\u8fde \u2014 \u91cd\u5e86"},
-    {route:"\u91cd\u5e86 \u2192 \u6210\u90fd"},
-    {route:"\u6210\u90fd / \u4e50\u5c71"},
-    {route:"\u4e50\u5c71-\u5ce8\u7709\u5c71"},
-    {route:"\u5ce8\u7709\u5c71\n\u6210\u90fd"},
-    {route:"\u6210\u90fd > \u5927\u8fde"}
-  ]);
+test("renders the route map before notice as a fixed image panel", () => {
+  const example = extractBundledExample();
 
-  assert.deepEqual(stops,[
-    {name:"\u5927\u8fde",startDay:1,endDay:1},
-    {name:"\u91cd\u5e86",startDay:1,endDay:2},
-    {name:"\u6210\u90fd",startDay:2,endDay:3},
-    {name:"\u4e50\u5c71",startDay:3,endDay:4},
-    {name:"\u5ce8\u7709\u5c71",startDay:4,endDay:5},
-    {name:"\u6210\u90fd",startDay:5,endDay:6},
-    {name:"\u5927\u8fde",startDay:6,endDay:6}
-  ]);
-});
-
-test("lays out route map stops in rows of at most five", () => {
-  const routeMapLayout = loadFunction("routeMapLayout");
-  const points = routeMapLayout(Array.from({length:11},(_,index) => ({name:String(index)})));
-  assert.deepEqual(points.map(point => point.row),[0,0,0,0,0,1,1,1,1,1,2]);
-  assert.ok(points[5].x > points[6].x);
-});
-
-test("renders the route map before notice with safe defaults and future provider seam", () => {
-  assert.match(html, /"mapModule": \{\s*"visible": false\s*\}/);
-  assert.match(html, /mapModule:\{visible:false\}/);
-  assert.match(html, /data\.mapModule = \{visible:Boolean\(data\.mapModule\?\.visible\)\}/);
+  assert.equal(example.mapModule.visible,false);
+  assert.equal(example.mapModule.baseImage,"");
+  assert.equal(example.mapModule.mapImage,"");
+  assert.match(html, /mapModule:normalizeMapModule\(\)/);
+  assert.match(html, /data\.mapModule = normalizeMapModule\(data\.mapModule\)/);
   assert.match(html, /function renderRouteMap\(/);
-  assert.match(html, /data-map-provider="schematic"/);
-  assert.match(html, /class="route-map-svg"/);
+  assert.match(html, /class="route-map-canvas"/);
+  assert.match(html, /class="route-map-layer route-map-base-layer"/);
+  assert.match(html, /class="route-map-layer route-map-image-layer"/);
   assert.match(html, /\$\{routeMap\}[\s\S]*?\$\{departureNotice\}[\s\S]*?\$\{lines\(data\.highlights\)/);
 });
 
-test("builds escaped SVG route map output and omits empty routes", () => {
-  const source = ["extractRouteStops","routeMapLayout","routeMapPath","routeDayLabel","routeMapDisplayName","renderRouteMapSurface"]
-    .map(extractFunction).join("\n");
-  const renderRouteMapSurface = Function(`const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));\n${source}\nreturn renderRouteMapSurface;`)();
+test("normalizes image route map state and keeps legacy visibility", () => {
+  const normalizeMapModule = loadFunction("normalizeMapModule");
 
-  assert.equal(renderRouteMapSurface([{route:""}]),"");
-  const svg = renderRouteMapSurface([{route:"\u5927\u8fde—<\u91cd\u5e86&\u9152\u5e97"},{route:"<\u91cd\u5e86&\u9152\u5e97—\u6210\u90fd"}]);
-  assert.match(svg, /data-map-provider="schematic"/);
-  assert.equal((svg.match(/class="route-map-node"/g) || []).length,3);
-  assert.match(svg, /&lt;\u91cd\u5e86&amp;\u9152\u5e97/);
-  assert.doesNotMatch(svg, /<\u91cd\u5e86&\u9152\u5e97/);
+  assert.deepEqual(normalizeMapModule(),{
+    visible:false,
+    editingLayer:"base",
+    baseImage:"",
+    baseOpacity:1,
+    baseBrightness:1,
+    baseTransform:{scale:1,x:0,y:0},
+    mapImage:"",
+    mapOpacity:1,
+    mapBrightness:1,
+    mapTransform:{scale:1,x:0,y:0}
+  });
+  assert.deepEqual(normalizeMapModule({visible:true}),{
+    visible:true,
+    editingLayer:"base",
+    baseImage:"",
+    baseOpacity:1,
+    baseBrightness:1,
+    baseTransform:{scale:1,x:0,y:0},
+    mapImage:"",
+    mapOpacity:1,
+    mapBrightness:1,
+    mapTransform:{scale:1,x:0,y:0}
+  });
+  assert.equal(normalizeMapModule({editingLayer:"map"}).editingLayer,"map");
+  assert.equal(normalizeMapModule({editingLayer:"other"}).editingLayer,"base");
 });
 
-test("guards empty route maps and keeps map output printable", () => {
-  assert.match(html, /if \(e\.target\.checked && !extractRouteStops\(data\.days\)\.length\)/);
-  assert.match(html, /toast\("\u8bf7\u5148\u586b\u5199\u5f53\u5929\u8def\u7ebf"\)/);
+test("renders uploaded map images in two adjustable layers", () => {
+  const source = ["normalizeMapModule","hasRouteMapImage","routeMapImageStyle","routeMapImageSrc","renderRouteMapSurface"]
+    .map(extractFunction).join("\n");
+  const renderRouteMapSurface = Function(`${source}\nreturn renderRouteMapSurface;`)();
+
+  assert.equal(renderRouteMapSurface({}),"");
+  const surface = renderRouteMapSurface({
+    baseImage:"data:image/jpeg;base64,base",
+    baseOpacity:.45,
+    baseBrightness:.8,
+    baseTransform:{scale:1.2,x:-8,y:6},
+    mapImage:"data:image/png;base64,map",
+    mapOpacity:.9,
+    mapBrightness:1.1,
+    mapTransform:{scale:1.05,x:4,y:-3}
+  });
+
+  assert.match(surface, /class="route-map-canvas"/);
+  assert.match(surface, /src="data:image\/jpeg;base64,base"/);
+  assert.match(surface, /class="route-map-layer route-map-base-layer"/);
+  assert.match(surface, /opacity:0\.45/);
+  assert.match(surface, /brightness\(0\.8\)/);
+  assert.match(surface, /translate\(-8%,6%\) scale\(1\.2\)/);
+  assert.match(surface, /src="data:image\/png;base64,map"/);
+  assert.match(surface, /class="route-map-layer route-map-image-layer"/);
+  assert.doesNotMatch(surface, /route-map-editor-toolbar/);
+  assert.doesNotMatch(surface, /route-map-crop-box/);
+});
+
+test("uses a drag crop editor instead of upload buttons and sliders", () => {
+  assert.match(html, /function renderRouteMapEditorCanvas\(/);
+  assert.match(html, /data-map-dropzone/);
+  assert.match(html, /data-map-file/);
+  assert.match(html, /data-map-layer="base"/);
+  assert.match(html, /data-map-layer="map"/);
+  assert.match(html, /data-map-delete-layer/);
+  assert.match(html, /class="route-map-crop-box"/);
+  assert.match(html, /data-map-resize="nw"/);
+  assert.match(html, /data-map-resize="se"/);
+  assert.match(html, /function chooseRouteMapDropLayer\(/);
+  assert.match(html, /function setRouteMapLayerImage\(/);
+  assert.match(html, /function beginRouteMapPointerEdit\(/);
+  assert.doesNotMatch(html, /data-map-number/);
+  assert.doesNotMatch(html, /data-map-transform/);
+  assert.doesNotMatch(html, /data-map-upload/);
+  assert.doesNotMatch(html, /data-map-clear/);
+  assert.doesNotMatch(html, /route-map-range/);
+  assert.doesNotMatch(html, /type="range"[^>]*data-map/);
+});
+
+test("guards empty uploaded maps and keeps image output printable", () => {
+  assert.match(html, /if \(e\.target\.checked && !hasRouteMapImage\(data\.mapModule\)\)/);
+  assert.match(html, /toast\("\u8bf7\u5148\u4e0a\u4f20\u5730\u56fe\u56fe\u7247"\)/);
   assert.match(html, /\.preview-route-map \{[^}]*break-inside: avoid/s);
-  assert.match(html, /\.route-map-svg \{[^}]*width: 100%[^}]*height: auto/s);
+  assert.match(html, /\.route-map-canvas \{[^}]*aspect-ratio: 920 \/ 480/s);
+});
+
+test("removes all external map provider code and UI", () => {
+  const terms = [
+    "\u9ad8\u5fb7",["Map","box"].join(""),["a","map"].join(""),["map","box"].join(""),"\u5730\u56fe\u63a5\u53e3","\u0057eb \u670d\u52a1",["Public","Token"].join(" "),
+    ["MAP","API","SETTINGS","KEY"].join("_"),["map","Api"].join(""),["route","Map","Provider"].join(""),["generate","Route","Map"].join(""),["retry","Route","Map"].join(""),
+    ["geo","code"].join(""),["build","Static","Map","Url"].join(""),["map","Credential"].join(""),["route-map","geographic"].join("-"),["route-map","base-image"].join("-"),["route-map","provider-badge"].join("-")
+  ];
+  terms.forEach(term => assert.doesNotMatch(html,new RegExp(term,"i")));
+});
+
+test("removes automatic SVG route map generation", () => {
+  const removedNames = [
+    "extractRouteStops",
+    "routeMapLayout",
+    "routeMapPath",
+    "routeDayLabel",
+    "routeMapDisplayName",
+    "renderStandaloneRouteMapSurface"
+  ];
+  removedNames.forEach(name => assert.doesNotMatch(html,new RegExp(`function ${name}\\(`)));
+  assert.doesNotMatch(html, /data-map-provider="schematic"/);
+  assert.doesNotMatch(html, /class="route-map-svg"/);
 });
 
 test("keeps departure notice hidden by default and renders it before highlights", () => {
