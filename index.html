@@ -459,9 +459,16 @@
     }
     .schedule-add:hover { border-color: var(--primary); background: #fff; }
     .schedule-editor-list { display: grid; gap: 10px; }
-    .schedule-editor-item { min-width: 0; display: grid; gap: 6px; border-radius: 8px; transition: opacity .15s ease, box-shadow .15s ease; }
+    .schedule-editor-item { position: relative; min-width: 0; display: grid; gap: 6px; border-radius: 8px; transition: opacity .15s ease; }
     .schedule-editor-item.schedule-dragging { opacity: .5; }
-    .schedule-editor-item.schedule-drag-over { box-shadow: 0 0 0 2px var(--primary-border); }
+    .schedule-editor-item.schedule-drop-before::before,
+    .schedule-editor-item.schedule-drop-after::after {
+      content: ""; position: absolute; z-index: 3; left: 0; right: 0; height: 3px;
+      border-radius: 999px; background: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft);
+      pointer-events: none;
+    }
+    .schedule-editor-item.schedule-drop-before::before { top: -6px; }
+    .schedule-editor-item.schedule-drop-after::after { bottom: -6px; }
     .schedule-name-row { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) 30px 30px; align-items: center; gap: 4px; }
     .schedule-name-wrap { position: relative; }
     .schedule-name-wrap::before {
@@ -2411,7 +2418,7 @@
       let templateNameState = {mode:"",sourcePlanId:"",templateId:""};
       let calendarState = { index: -1, view: null, selected: null };
       let dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
-      let scheduleDragState = { active:false, dayIndex:-1, period:"", source:-1, target:-1, pointerId:null };
+      let scheduleDragState = { active:false, dayIndex:-1, period:"", source:-1, targetPeriod:"", target:-1, pointerId:null };
       let daySummaryMouseClick = { index:-1, pointerId:null, timestamp:0 };
       let suppressDragClickUntil = 0;
       const histories = {};
@@ -4437,6 +4444,26 @@ ${text}`;
         next.splice(targetIndex,0,moved);
         return next;
       }
+      function moveScheduleItem(day,sourcePeriod,sourceIndex,targetPeriod,targetIndex) {
+        if (!day || !sourcePeriod || !targetPeriod || !Number.isInteger(sourceIndex) || !Number.isInteger(targetIndex) || sourceIndex < 0 || targetIndex < 0) return false;
+        const sourceItems = parseScheduleItems(day[sourcePeriod]);
+        if (sourceIndex >= sourceItems.length) return false;
+        if (sourcePeriod === targetPeriod) {
+          const boundary = Math.min(targetIndex,sourceItems.length);
+          const insertionIndex = boundary - (sourceIndex < boundary ? 1 : 0);
+          if (sourceIndex === insertionIndex) return false;
+          const [moved] = sourceItems.splice(sourceIndex,1);
+          sourceItems.splice(insertionIndex,0,moved);
+          day[sourcePeriod] = serializeScheduleItems(sourceItems);
+          return true;
+        }
+        const [moved] = sourceItems.splice(sourceIndex,1);
+        const targetItems = parseScheduleItems(day[targetPeriod]);
+        targetItems.splice(Math.min(targetIndex,targetItems.length),0,moved);
+        day[sourcePeriod] = serializeScheduleItems(sourceItems);
+        day[targetPeriod] = serializeScheduleItems(targetItems);
+        return true;
+      }
       function scheduleEditorHtml(day,index,period,label) {
         const parsed = parseScheduleItems(day[period]);
         const items = parsed.length ? parsed : [{name:"",description:""}];
@@ -5075,21 +5102,24 @@ ${text}`;
         dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
       }
       function clearScheduleDragVisuals() {
-        document.querySelectorAll(".schedule-editor-item.schedule-dragging,.schedule-editor-item.schedule-drag-over").forEach(item => item.classList.remove("schedule-dragging","schedule-drag-over"));
+        document.querySelectorAll(".schedule-editor-item.schedule-dragging,.schedule-editor-item.schedule-drop-before,.schedule-editor-item.schedule-drop-after").forEach(item => item.classList.remove("schedule-dragging","schedule-drop-before","schedule-drop-after"));
       }
       function endScheduleDrag(cancelled = false) {
         const state = scheduleDragState;
-        scheduleDragState = { active:false, dayIndex:-1, period:"", source:-1, target:-1, pointerId:null };
-        if (!state.active || cancelled || state.source === state.target || state.target < 0 || !data.days[state.dayIndex]) {
+        scheduleDragState = { active:false, dayIndex:-1, period:"", source:-1, targetPeriod:"", target:-1, pointerId:null };
+        if (!state.active || cancelled || state.target < 0 || !data.days[state.dayIndex]) {
           clearScheduleDragVisuals();
           return;
         }
         remember();
-        const items = parseScheduleItems(data.days[state.dayIndex][state.period]);
-        data.days[state.dayIndex][state.period] = serializeScheduleItems(reorderScheduleItems(items,state.source,state.target),true);
+        const moved = moveScheduleItem(data.days[state.dayIndex],state.period,state.source,state.targetPeriod,state.target);
+        if (!moved) {
+          clearScheduleDragVisuals();
+          return;
+        }
         renderEditor(state.dayIndex);
         minimizeEmptyTextareas($("#daysEditor"));
-        renderPreview(); save(); toast("已调整景点顺序");
+        renderPreview(); save(); toast(state.period === state.targetPeriod ? "已调整景点顺序" : "景点已移至另一时段");
       }
       $("#titleInput").addEventListener("input", e => { rememberEdit(e.target); data.title = e.target.value; renderPreview(); save(); });
       $("#routeMapVisible").addEventListener("click", e => e.stopPropagation());
@@ -5590,6 +5620,7 @@ ${text}`;
             dayIndex:Number(item.dataset.scheduleIndex),
             period:item.dataset.schedulePeriod,
             source:Number(item.dataset.scheduleItemRow),
+            targetPeriod:item.dataset.schedulePeriod,
             target:Number(item.dataset.scheduleItemRow),
             pointerId:e.pointerId
           };
@@ -5615,11 +5646,15 @@ ${text}`;
         if (scheduleDragState.active && e.pointerId === scheduleDragState.pointerId) {
           e.preventDefault();
           const targetItem = document.elementFromPoint(e.clientX,e.clientY)?.closest(".schedule-editor-item");
-          if (!targetItem || Number(targetItem.dataset.scheduleIndex) !== scheduleDragState.dayIndex || targetItem.dataset.schedulePeriod !== scheduleDragState.period) return;
-          const targetIndex = Number(targetItem.dataset.scheduleItemRow);
-          if (!Number.isInteger(targetIndex)) return;
-          scheduleDragState.target = targetIndex;
-          targetItem.closest(".schedule-editor-list")?.querySelectorAll(".schedule-editor-item").forEach(item => item.classList.toggle("schedule-drag-over",item === targetItem && !item.classList.contains("schedule-dragging")));
+          if (!targetItem || Number(targetItem.dataset.scheduleIndex) !== scheduleDragState.dayIndex) return;
+          const itemIndex = Number(targetItem.dataset.scheduleItemRow);
+          if (!Number.isInteger(itemIndex)) return;
+          const rect = targetItem.getBoundingClientRect();
+          const insertAfter = e.clientY >= rect.top + rect.height / 2;
+          scheduleDragState.targetPeriod = targetItem.dataset.schedulePeriod;
+          scheduleDragState.target = itemIndex + (insertAfter ? 1 : 0);
+          document.querySelectorAll(".schedule-editor-item.schedule-drop-before,.schedule-editor-item.schedule-drop-after").forEach(item => item.classList.remove("schedule-drop-before","schedule-drop-after"));
+          targetItem.classList.add(insertAfter ? "schedule-drop-after" : "schedule-drop-before");
           return;
         }
         if (!dragState.active || e.pointerId !== dragState.pointerId) return;
