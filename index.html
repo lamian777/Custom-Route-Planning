@@ -3373,9 +3373,17 @@
         try { persistLibrary(); } catch (_) {}
         const copied = clone(source);
         copied.id = uid();
-        copied.name = `${planDisplayName(source,sourceProject.plans.indexOf(source))} 副本`;
         copied.updatedAt = Date.now();
         copied.data = clone(source.data);
+        const copyTitleBase = String(copied.data.title || planDisplayName(source,sourceProject.plans.indexOf(source))).replace(/（副本\d+）$/,"").trim() || "未命名线路";
+        const copyPrefix = `${copyTitleBase}（副本`;
+        const copyNumber = target.plans.reduce((highest,plan) => {
+          const title = String(plan.data?.title || "");
+          const match = title.startsWith(copyPrefix) ? title.slice(copyPrefix.length).match(/^(\d+)）$/) : null;
+          return Math.max(highest,Number(match?.[1]) || 0);
+        },0) + 1;
+        copied.name = `${planDisplayName(source,sourceProject.plans.indexOf(source))} 副本${copyNumber}`;
+        copied.data.title = `${copyTitleBase}（副本${copyNumber}）`;
         copied.data.themeId = projectThemeId(target);
         target.plans.push(copied);
         syncProjectTheme(target);
@@ -3383,6 +3391,7 @@
         closeCopyPlanModal();
         storeLibrary();
         renderTaskMenu();
+        if (target.id === currentProject().id) renderPlanRail();
         toast(`已复制到：${projectDisplayName(target)}`);
       }
       function copyCurrentPlanToProject(projectId) {
