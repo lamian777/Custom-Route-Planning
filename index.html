@@ -257,7 +257,7 @@
       color: #fff; background: var(--primary); border-radius: 7px;
       font-size: 12px; font-weight: 800; letter-spacing: .04em;
     }
-    .content-list-editor-card { margin-bottom: 14px; }
+    .content-list-editor-card { margin-bottom: 14px; border-color: var(--line); }
     .content-list-editor-card:last-child { margin-bottom: 0; }
     .content-list-editor-card .field { margin: 0; }
     .content-list-editor-card .bullet-list-editor { border-color: var(--primary-border); }
@@ -1673,7 +1673,7 @@
                 "保险：旅行社责任险、旅行意外险，最终解决权归保险公司；"
         ],
         "themeId": "blue",
-        "title": "08.01 成都双飞4日游"
+        "title": "成都双飞4日游"
 };
       const fields = [
         ["route","当天路线","例如：大连 — 重庆","input"],
@@ -2972,7 +2972,6 @@
             day.weekday = weekdays[parsed.getDay()];
           }
         });
-        saved.title = normalizeRecognizedTitle(saved.title,saved.days[0]?.date);
         saved.customerDemand = typeof saved.customerDemand === "string" ? saved.customerDemand : "";
         saved.demandRecognition = normalizeDemandRecognition(saved.demandRecognition);
         saved.mapModule = normalizeMapModule(saved.mapModule);
@@ -2990,7 +2989,6 @@
             day.date = "";
             day.weekday = "";
           });
-          data.title = normalizeRecognizedTitle(data.title,data.days[0]?.date);
           return;
         }
         data.days.forEach((day,index) => {
@@ -2999,7 +2997,6 @@
           day.date = toIso(date);
           day.weekday = weekdays[date.getDay()];
         });
-        data.title = normalizeRecognizedTitle(data.title,data.days[0]?.date);
       }
       function persistLibrary() {
         const project = currentProject();
@@ -3709,10 +3706,8 @@
         }
         return null;
       }
-      function normalizeRecognizedTitle(title, firstDate) {
-        const cleanTitle = String(title || "").trim().replace(/^\s*(?:\d{1,2}[./-]\d{1,2}|\d{1,2}月\d{1,2}日)\s*/,"");
-        const date = String(firstDate || "").match(/^\d{4}-(\d{2})-(\d{2})$/);
-        return date && cleanTitle ? `${date[1]}.${date[2]} ${cleanTitle}` : cleanTitle;
+      function titleWithoutDatePrefix(title) {
+        return String(title || "").trim().replace(/^\s*(?:\d{1,2}[./-]\d{1,2}|\d{1,2}月\d{1,2}日)\s*/,"");
       }
       function mergeRecognitionList(existing, recognized) {
         const clean = values => (Array.isArray(values) ? values : []).map(value => String(value || "").trim()).filter(Boolean);
@@ -3819,7 +3814,7 @@
           warnings.push("文件未提供年份，已按最近尚未过去的日期自动推算。");
         }
         const resultData = {
-          title:normalizeRecognizedTitle(text(raw?.title) || (preserveExisting ? taskData.title : ""),days[0]?.date), days,
+          title:titleWithoutDatePrefix(text(raw?.title) || (preserveExisting ? taskData.title : "")), days,
           standards:preserveExisting ? mergeRecognitionList(taskData.standards,list(raw?.standards)) : list(raw?.standards),
           notes:preserveExisting ? mergeRecognitionList(taskData.notes,list(raw?.notes)) : list(raw?.notes), _heights:clone(taskData?._heights || {})
         };
@@ -4019,7 +4014,7 @@
 12. 识别范围仅限 01 基础内容，不要提取、生成或修改 02 附加板块，包括行程亮点、出团通知、报价明细。
 13. 景点名称必须使用中文方括号【】标注，例如【青城山】【乐山大佛】；同一景点每次出现都要保持这一格式。
 14. ${isReferenceItinerary ? "参考行程转换时，景点介绍只忠实整理原文，不补写特色、不扩写、不把一处介绍复制到其他景点。" : "上午、下午的行程文案必须写成完整、自然的游览句。禁止只罗列景点名称；在不编造硬性事实的前提下，为景点补充一至两句简短的特色、体验或景观描述，增加阅读性。"}
-15. 标题必须以首日出发日期开头，格式为 MM.DD，例如“08.01 重庆、成都双飞6日游”。
+15. 标题只写线路名称，不要添加首日日期或其他日期前缀，例如“重庆、成都双飞6日游”。
 16. 仅当本次输入是客户需求时，接待标准和特别说明才以当前已有内容为底稿：保留仍适用的条目，按本次线路修改需要变化的条目，并增加缺少的条目，不得无故清空或整组省略。若新内容与已有条目意思相同，必须原样返回已有条目，不要改写措辞。
 17. 只能返回一个 JSON 对象，不要输出 Markdown 或解释文字。
 
