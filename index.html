@@ -150,7 +150,16 @@
       box-shadow: none;
     }
     .plan-list { display: grid; gap: 6px; }
-    .plan-card { position: relative; }
+    .plan-card { position: relative; transition: opacity .15s ease; }
+    .plan-card.plan-dragging { opacity: .5; }
+    .plan-card.plan-drop-before::before,
+    .plan-card.plan-drop-after::after {
+      content: ""; position: absolute; z-index: 90; left: 0; right: 0; height: 3px;
+      border-radius: 999px; background: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft);
+      pointer-events: none;
+    }
+    .plan-card.plan-drop-before::before { top: -5px; }
+    .plan-card.plan-drop-after::after { bottom: -5px; }
     .plan-tab, .plan-add {
       width: 34px; min-height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 11px;
       display: inline-flex; align-items: center; justify-content: center;
@@ -884,6 +893,10 @@
       .workspace { display: block; padding: 12px; }
       .plan-rail { position: static; margin-bottom: 12px; padding: 6px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; background: #fff; border: 1px solid var(--soft-line); border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
       .plan-list { display: flex; gap: 6px; overflow-x: auto; overflow-y: visible; padding-bottom: 116px; margin-bottom: -116px; }
+      .plan-card.plan-drop-before::before,
+      .plan-card.plan-drop-after::after { top: 0; bottom: 0; width: 3px; height: auto; }
+      .plan-card.plan-drop-before::before { left: -5px; right: auto; }
+      .plan-card.plan-drop-after::after { right: -5px; left: auto; }
       .plan-action-menu { left: 0; right: auto; top: calc(100% + 6px); }
       .plan-tab { width: 34px; min-width: 34px; min-height: 34px; padding: 0; border-radius: 11px; font-size: 12px; line-height: 1; }
       .plan-add { width: 34px; min-height: 34px; }
@@ -2418,9 +2431,11 @@
       let templateNameState = {mode:"",sourcePlanId:"",templateId:""};
       let calendarState = { index: -1, view: null, selected: null };
       let dragState = { timer:null, active:false, source:-1, target:-1, pointerId:null };
+      let planDragState = { active:false, source:-1, target:-1, pointerId:null, startX:0, startY:0 };
       let scheduleDragState = { active:false, dayIndex:-1, period:"", source:-1, targetPeriod:"", target:-1, pointerId:null };
       let daySummaryMouseClick = { index:-1, pointerId:null, timestamp:0 };
       let suppressDragClickUntil = 0;
+      let suppressPlanClickUntil = 0;
       const histories = {};
       const editRememberedTargets = new Set();
       let sizeObserver;
@@ -3165,6 +3180,40 @@
               <button type="button" data-plan-delete="${plan.id}" ${project.plans.length <= 1 ? "disabled" : ""}>删除</button>
             </div>
           </div>`).join("");
+      }
+      function reorderPlans(project,sourceIndex,targetIndex) {
+        const plans = project?.plans;
+        if (!Array.isArray(plans) || !Number.isInteger(sourceIndex) || !Number.isInteger(targetIndex) || sourceIndex < 0 || targetIndex < 0 || sourceIndex >= plans.length) return false;
+        const boundary = Math.min(targetIndex,plans.length);
+        const insertionIndex = boundary - (sourceIndex < boundary ? 1 : 0);
+        if (sourceIndex === insertionIndex) return false;
+        const [moved] = plans.splice(sourceIndex,1);
+        plans.splice(insertionIndex,0,moved);
+        return true;
+      }
+      function clearPlanDragVisuals() {
+        $("#planList").querySelectorAll(".plan-card.plan-dragging,.plan-card.plan-drop-before,.plan-card.plan-drop-after").forEach(card => card.classList.remove("plan-dragging","plan-drop-before","plan-drop-after"));
+      }
+      function endPlanDrag(cancelled = false) {
+        const state = planDragState;
+        planDragState = { active:false, source:-1, target:-1, pointerId:null, startX:0, startY:0 };
+        if (!state.active || cancelled) {
+          clearPlanDragVisuals();
+          return;
+        }
+        suppressPlanClickUntil = Date.now() + 300;
+        const project = currentProject();
+        clearTimeout(saveTimer);
+        try { persistLibrary(); } catch (_) {}
+        const moved = reorderPlans(project,state.source,state.target);
+        clearPlanDragVisuals();
+        if (!moved) return;
+        openPlanMenuId = "";
+        project.updatedAt = Date.now();
+        renderPlanRail();
+        renderTaskMenu();
+        save();
+        toast("方案顺序已调整");
       }
       function closeTaskMenu() { $("#taskMenu").hidden = true; }
       function switchTask(id) {
@@ -5750,6 +5799,11 @@ ${text}`;
         if (option) setCurrentTheme(option.dataset.themeId);
       });
       $("#planList").addEventListener("click",e => {
+        if (Date.now() < suppressPlanClickUntil) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
         const copy = e.target.closest("[data-plan-copy]");
         if (copy) {
           e.stopPropagation();
@@ -5770,6 +5824,48 @@ ${text}`;
         }
         const plan = e.target.closest("[data-plan-id]");
         if (plan) switchPlan(plan.dataset.planId);
+      });
+      $("#planList").addEventListener("pointerdown",e => {
+        const tab = e.target.closest("[data-plan-id]");
+        if (!tab || e.button !== 0) return;
+        const card = tab.closest("[data-plan-card]");
+        const cards = [...$("#planList").querySelectorAll("[data-plan-card]")];
+        const source = cards.indexOf(card);
+        if (source < 0) return;
+        planDragState = { active:false, source, target:source, pointerId:e.pointerId, startX:e.clientX, startY:e.clientY };
+        tab.setPointerCapture?.(e.pointerId);
+      });
+      $("#planList").addEventListener("pointermove",e => {
+        if (e.pointerId !== planDragState.pointerId) return;
+        const state = planDragState;
+        if (!state.active) {
+          if (Math.hypot(e.clientX - state.startX,e.clientY - state.startY) < 6) return;
+          state.active = true;
+          const sourceCard = $("#planList").querySelectorAll("[data-plan-card]")[state.source];
+          sourceCard?.classList.add("plan-dragging");
+        }
+        e.preventDefault();
+        const targetCard = document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-plan-card]");
+        if (!targetCard || !$("#planList").contains(targetCard)) {
+          state.target = -1;
+          $("#planList").querySelectorAll(".plan-card.plan-drop-before,.plan-card.plan-drop-after").forEach(card => card.classList.remove("plan-drop-before","plan-drop-after"));
+          return;
+        }
+        const cards = [...$("#planList").querySelectorAll("[data-plan-card]")];
+        const targetIndex = cards.indexOf(targetCard);
+        if (targetIndex < 0) return;
+        const rect = targetCard.getBoundingClientRect();
+        const horizontal = getComputedStyle($("#planList")).display === "flex";
+        const insertAfter = horizontal ? e.clientX >= rect.left + rect.width / 2 : e.clientY >= rect.top + rect.height / 2;
+        state.target = targetIndex + (insertAfter ? 1 : 0);
+        $("#planList").querySelectorAll(".plan-card.plan-drop-before,.plan-card.plan-drop-after").forEach(card => card.classList.remove("plan-drop-before","plan-drop-after"));
+        targetCard.classList.add(insertAfter ? "plan-drop-after" : "plan-drop-before");
+      });
+      $("#planList").addEventListener("pointerup",e => {
+        if (e.pointerId === planDragState.pointerId) endPlanDrag();
+      });
+      $("#planList").addEventListener("pointercancel",e => {
+        if (e.pointerId === planDragState.pointerId) endPlanDrag(true);
       });
       $("#planList").addEventListener("contextmenu",e => {
         const card = e.target.closest("[data-plan-card]");
