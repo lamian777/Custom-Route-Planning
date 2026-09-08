@@ -1696,7 +1696,7 @@
         ["lunch","午餐","","input"], ["dinner","晚餐","","input"]
       ];
       const fieldMap = Object.fromEntries(fields.map(field => [field[0],field]));
-      const transportOptions = ["✈️ 飞机","🚄 高铁","🚢 轮船","🚌 旅游巴士","🚙 商务车","🚃 公共交通","🚗 自驾车","🚳 不含交通"];
+      const transportOptions = ["✈️ 飞机","🚄 高铁","🚢 轮船","🚌 空调巴士","🚙 商务车","🚃 公共交通","🚗 自驾车","🚳 不含交通"];
       const noticeFields = [
         ["meeting","集合信息",true,true],["guide","导游信息",true,false],["vehicle","车辆信息",true,false],
         ["flight","航班信息",false,true],["weather","当地天气",false,true],["notes","注意事项",false,true]
@@ -4573,7 +4573,7 @@ ${text}`;
         return fieldHtml(day,index,fieldMap[key]);
       }
       function defaultTransportForDay(index, total) {
-        return index === 0 || index === total - 1 ? "✈️ 飞机" : "🚌 旅游巴士";
+        return index === 0 || index === total - 1 ? "✈️ 飞机" : "🚌 空调巴士";
       }
       function selectedTransportOptions(value) {
         const source = String(value || "").toLowerCase();
@@ -4581,7 +4581,7 @@ ${text}`;
           "✈️ 飞机":/✈|飞机|航空|航班/,
           "🚄 高铁":/🚄|高铁|动车/,
           "🚢 轮船":/🚢|轮船|邮轮|船舶/,
-          "🚌 旅游巴士":/🚌|旅游巴士|大巴|巴士|bus/,
+          "🚌 空调巴士":/🚌|空调巴士|旅游巴士|大巴|巴士|bus/,
           "🚙 商务车":/🚙|商务车|mpv/,
           "🚃 公共交通":/🚃|公共交通|地铁|公交|轻轨/,
           "🚗 自驾车":/🚗|自驾/,
