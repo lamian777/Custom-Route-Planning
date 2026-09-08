@@ -1182,11 +1182,11 @@
               </summary>
               <div class="day-body">
                 <label class="field"><span><b class="required-mark">*</b>集合信息</span><textarea data-notice-field="meeting" placeholder="集合时间、地点等" required></textarea></label>
+                <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
                 <div class="grid-2">
                   <label class="field"><span><b class="required-mark">*</b>导游信息</span><textarea data-notice-field="guide" placeholder="姓名、电话等" required></textarea></label>
                   <label class="field"><span><b class="required-mark">*</b>车辆信息</span><textarea data-notice-field="vehicle" placeholder="车牌号、车型等" required></textarea></label>
                 </div>
-                <label class="field"><span>航班信息</span><textarea data-notice-field="flight" placeholder="往返航班、起降时间等"></textarea></label>
                 <label class="field"><span>当地天气</span><textarea data-notice-field="weather" placeholder="天气、温度、穿衣建议等"></textarea></label>
                 <label class="field"><span>注意事项</span><textarea data-notice-field="notes" placeholder="每项注意事项可换行填写"></textarea></label>
               </div>
@@ -1698,8 +1698,8 @@
       const fieldMap = Object.fromEntries(fields.map(field => [field[0],field]));
       const transportOptions = ["✈️ 飞机","🚄 高铁","🚢 轮船","🚌 空调巴士","🚙 商务车","🚃 公共交通","🚗 自驾车","🚳 不含交通"];
       const noticeFields = [
-        ["meeting","集合信息",true,true],["guide","导游信息",true,false],["vehicle","车辆信息",true,false],
-        ["flight","航班信息",false,true],["weather","当地天气",false,true],["notes","注意事项",false,true]
+        ["meeting","集合信息",true,true],["flight","航班信息",false,true],["guide","导游信息",true,false],
+        ["vehicle","车辆信息",true,false],["weather","当地天气",false,true],["notes","注意事项",false,true]
       ];
       const requiredNoticeFields = new Set(noticeFields.filter(([, , required]) => required).map(([field]) => field));
       const enterpriseFields = [["companyName","企业名称"],["address","地址"],["contact","联系人"],["phone","电话"]];
